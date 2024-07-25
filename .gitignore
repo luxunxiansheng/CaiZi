@@ -1,0 +1,15 @@
+# Bazel
+bazel-bin
+bazel-out
+bazel-testlogs
+# Bazel internal files
+__bazel-*
+
+# Python
+__pycache__/ 
+*.pyc
+
+
+
+
+
