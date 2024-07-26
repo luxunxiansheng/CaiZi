@@ -40,5 +40,7 @@
         "vscode-icons-team.vscode-icons"
       ]
     }
-  }
+  },
+
+  "postCreateCommand": "pip-compile requirements.in && pip install -r requirements.txt"
 }

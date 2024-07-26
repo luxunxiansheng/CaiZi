@@ -11,6 +11,4 @@ RUN wget https://github.com/bazelbuild/bazelisk/releases/download/v1.20.0/bazeli
     chmod +x bazelisk && \
     mv bazelisk /usr/local/bin/bazel    
     
-#COPY requirements.txt requirements.txt
 
-#RUN pip install --no-cache-dir -r requirements.txt

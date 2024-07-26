@@ -7,3 +7,5 @@ watermark
 torch
 tiktoken
 ray
+hydra-core
+pydantic
