@@ -6,3 +6,12 @@ py_test(
        "//src:document_processor",      
     ],
 )
+
+py_test(
+    name = "test_token_processor",
+    srcs = ["test_token_processor.py"],
+    deps = [
+       "//src:config", 
+       "//src:token_processor",      
+    ],
+)

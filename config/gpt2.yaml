@@ -1,7 +1,17 @@
 project_root:
 
 dataset:
-  xjtu_1:
-    path: dataset/xjtu_1.txt
+  - name: "xjtu_1"
+    path: "/workspaces/CaiZi/dataset/xjtu_1.txt"
+  
+  - name: "qi_wang"
+    path: "/workspaces/CaiZi/dataset/qi_wang.txt"
+
+  - name: "shu_wang"
+    path: "/workspaces/CaiZi/dataset/shu_wang.txt"
+  
+  - name: "hai_zi_wang"
+    path: "/workspaces/CaiZi/dataset/hai_zi_wang.txt"
+
 
   

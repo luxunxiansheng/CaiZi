@@ -11,6 +11,6 @@ hydra-core
 pydantic
 pyarrow
 tqdm
-
+ipywidgets
 
 

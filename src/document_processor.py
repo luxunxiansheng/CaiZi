@@ -1,15 +1,15 @@
-
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import  Dict
 
 
-class DocumentProcessorBase(ABC):
+class DocumentProcessor(ABC):
     @abstractmethod
-    def __call__(self, doc_path: Path) -> str:
+    def __call__(self, doc_path: Path) -> Dict[str, str]:
         pass
 
-class TextDocumentProcessor(DocumentProcessorBase):
-    def __call__(self, doc_path: Path) -> str:
-        with open(doc_path, "r", encoding="utf-8") as f:
+class TextDocumentProcessor(DocumentProcessor):
+    def __call__(self, doc_path: Dict[str,str]) -> Dict[str, str]:
+        with open(doc_path['item'], "r", encoding="utf-8") as f:
             raw_text = f.read()
-        return raw_text
+        return {"text": raw_text}
