@@ -14,7 +14,7 @@ class TestDocumentProcessor(unittest.TestCase):
     def test_document_processor(self):
         doc_processor = TextDocumentProcessor()
 
-        raw_text = doc_processor(gpt2_cfg.dataset[0]["path"])
+        raw_text = doc_processor({"item":gpt2_cfg.dataset[0]["path"]})
         print(raw_text)
    
 
