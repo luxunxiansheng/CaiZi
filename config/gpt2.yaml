@@ -1,7 +1,7 @@
 project_root:
 
 dataset:
-  - name: xjtu
-    path: datasets/xjtu_1.txt
+  xjtu_1:
+    path: dataset/xjtu_1.txt
 
   
