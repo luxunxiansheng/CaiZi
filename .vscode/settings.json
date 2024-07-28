@@ -4,4 +4,7 @@
     "terminal.integrated.env.linux": {
         "PYTHONPATH": "${workspaceFolder}/src:${workspaceFolder}/third_party"
     },
+    "fileheader.Author": "Bin.Li",
+    "fileheader.LastModifiedBy": "Bin.Li",
+    "fileheader.tpl": "'''/* * @Author: {author}  * @Date: {createTime}  * @Last Modified by:   {lastModifiedBy}  * @Last Modified time: {updateTime}  */'''",
 }

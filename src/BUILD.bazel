@@ -16,3 +16,9 @@ py_library(
     srcs = ["token_processor.py"],
     visibility = ["//visibility:public"],
 )
+
+py_library(
+    name = "chunk_processor",
+    srcs = ["chunk_processor.py"],
+    visibility = ["//visibility:public"],
+)

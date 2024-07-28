@@ -1,3 +1,10 @@
+"""
+Author: Bin.Li
+Email:  ornot2008@yahoo.com
+MIT License
+Copyright (c) 2025 debutpark.com
+"""
+
 
 from abc import ABC
 from abc import abstractmethod

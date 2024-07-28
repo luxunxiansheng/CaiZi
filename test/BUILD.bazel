@@ -15,3 +15,12 @@ py_test(
        "//src:token_processor",      
     ],
 )
+
+py_test(
+    name = "test_chunk_processor",
+    srcs = ["test_chunk_processor.py"],
+    deps = [
+       "//src:config", 
+       "//src:chunk_processor",      
+    ],
+)

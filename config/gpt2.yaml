@@ -13,5 +13,5 @@ dataset:
   - name: "hai_zi_wang"
     path: "/workspaces/CaiZi/dataset/hai_zi_wang.txt"
 
-
-  
+max_length: 1024
+stride: 512
