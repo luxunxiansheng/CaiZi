@@ -1,0 +1,6 @@
+filegroup(
+    name = "config_file",
+    srcs = ["gpt2.yaml"],
+
+    visibility = ["//visibility:public"],
+)

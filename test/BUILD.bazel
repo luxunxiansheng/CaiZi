@@ -1,0 +1,8 @@
+py_test(
+    name = "test_document_processor",
+    srcs = ["test_document_processor.py"],
+    deps = [
+       "//src:config", 
+       "//src:document_processor",      
+    ],
+)

@@ -1,4 +1,4 @@
 test --action_env=PYTHONPATH=src:third_party 
-test --action_env=PYTHONPATH=src:third_party --test_output=all --verbose_failures
+test --action_env=PYTHONPATH=src:third_party  --test_output=all --verbose_failures
 common --experimental_convenience_symlinks=clean
 test --test_timeout=9000

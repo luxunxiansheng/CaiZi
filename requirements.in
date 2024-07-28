@@ -9,3 +9,8 @@ tiktoken
 ray
 hydra-core
 pydantic
+pyarrow
+tqdm
+
+
+

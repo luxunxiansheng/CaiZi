@@ -41,6 +41,13 @@
       ]
     }
   },
+  "features": {
+    "ghcr.io/devcontainers/features/nvidia-cuda:1": {}
+  },
 
-  "postCreateCommand": "pip-compile requirements.in && pip install -r requirements.txt"
+
+
+  
+  
+  
 }

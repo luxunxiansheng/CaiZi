@@ -1,4 +1,4 @@
-workspace(name="SmartDE")
+workspace(name="CaiZi")
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 http_archive(
@@ -9,9 +9,6 @@ http_archive(
 
 )
 
-load("@rules_python//python:pip.bzl", "pip_parse")
-pip_parse(
-   name = "python_deps",
-   requirements = "//third_party:requirements.txt",
-)
+
+
 

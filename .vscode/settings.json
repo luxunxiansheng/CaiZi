@@ -1,3 +1,7 @@
 {
-    "editor.fontFamily": " 'Courier New'"
+    "editor.fontFamily": " 'Courier New'",
+    "terminal.integrated.cwd": "${workspaceFolder}",
+    "terminal.integrated.env.linux": {
+        "PYTHONPATH": "${workspaceFolder}/src:${workspaceFolder}/third_party"
+    },
 }

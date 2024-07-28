@@ -1,0 +1,13 @@
+py_library(
+    name = "config",
+    srcs = ["config.py"],
+    data = ["//config:config_file"],
+    visibility = ["//visibility:public"],
+)
+
+py_library(
+    name = "document_processor",
+    srcs = ["document_processor.py"],
+    deps = [],
+    visibility = ["//visibility:public"],
+)
