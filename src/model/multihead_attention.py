@@ -14,7 +14,7 @@ import torch.nn as nn
 
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, dimension_input, dimension_embedding, block_size, dropout, num_heads, qkv_bias=False):
+    def __init__(self, dimension_input: int, dimension_embedding: int, block_size: int, num_heads: int = 1, dropout: float = 0.0, qkv_bias: bool = False):
         super().__init__()
         assert dimension_embedding % num_heads == 0, "d_out must be divisible by num_heads"
 
@@ -35,7 +35,7 @@ class MultiHeadAttention(nn.Module):
             self.register_buffer('mask', torch.triu(torch.ones(block_size, block_size), diagonal=1))
 
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         batches, num_tokens, dimension_input = x.shape
 
         keys = self.weights_key(x) # Shape: (b, num_tokens, d_out)

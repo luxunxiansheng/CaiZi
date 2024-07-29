@@ -15,6 +15,13 @@ py_test(
        "//src:config", 
        "//src/model:transformer_block",      
     ],
+)
 
-
+py_test(
+    name = "test_GPT",
+    srcs = ["test_GPT.py"],
+    deps = [
+       "//src:config", 
+       "//src/model:GPT",      
+    ],
 )

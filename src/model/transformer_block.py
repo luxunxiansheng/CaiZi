@@ -10,6 +10,7 @@
 """
 
 import torch.nn as nn
+import torch
 
 
 from model.layer_norm import LayerNorm
@@ -17,15 +18,15 @@ from model.mlp import MLP
 from model.multihead_attention import MultiHeadAttention
 
 class TransformerBlock(nn.Module):
-    def __init__(self, dimension_input, dimension_embedding, block_size, dropout, num_heads, qkv_bias=False):
+    def __init__(self, dimension_input: int, dimension_embedding: int, block_size: int, num_heads: int = 1, drop_rate: float = 0.0, qkv_bias: bool = False):
         super().__init__()
         self.layernorm_1 = LayerNorm(dimension_embedding)
-        self.attention = MultiHeadAttention(dimension_input, dimension_embedding, block_size, dropout, num_heads, qkv_bias)
+        self.attention = MultiHeadAttention(dimension_input, dimension_embedding, block_size, num_heads, drop_rate, qkv_bias)
         self.layernorm_2 = LayerNorm(dimension_embedding)
         self.mlp = MLP(dimension_embedding)
         
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         # Shortcut connection for attention block
         shortcut = x
         x = self.layernorm_1(x)

@@ -21,7 +21,7 @@ class TestMultiHeadAttention(unittest.TestCase):
         dimension_input = inputs.shape[1]
         dimension_embedding = 2
         
-        attention = MultiHeadAttention(dimension_input, dimension_embedding, block_size, 0.0, 2)
+        attention = MultiHeadAttention(dimension_input, dimension_embedding, block_size, 1,0.0, 2)
 
 
 

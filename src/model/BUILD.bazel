@@ -1,4 +1,20 @@
 
+
+
+py_library(
+    name = "layer_norm",
+    srcs = ["layer_norm.py"],
+    visibility = ["//visibility:public"],
+)
+
+
+py_library(
+    name = "mlp",
+    srcs = ["mlp.py"],
+    visibility = ["//visibility:public"],
+)
+
+
 py_library(
     name="multihead_attention",
     srcs=["multihead_attention.py"],
@@ -9,5 +25,21 @@ py_library(
     name="transformer_block",
     srcs=["transformer_block.py"],
     visibility = ["//visibility:public"],
+    deps = [
+        ":multihead_attention",
+        ":mlp",
+        ":layer_norm",
+    ],
+)
+
+py_library(
+    name = "GPT",
+    srcs = ["GPT.py"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":transformer_block",
+        ":layer_norm",
+],
+
 
 )
