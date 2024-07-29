@@ -24,3 +24,12 @@ py_test(
        "//src:chunk_processor",      
     ],
 )
+
+py_test(
+    name = "test_text_generator",
+    srcs = ["test_text_generator.py"],
+    deps = [
+       "//src:config", 
+       "//src:text_generator",      
+    ],
+)

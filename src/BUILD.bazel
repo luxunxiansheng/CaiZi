@@ -22,3 +22,12 @@ py_library(
     srcs = ["chunk_processor.py"],
     visibility = ["//visibility:public"],
 )
+
+py_library(
+    name = "text_generator",
+    srcs = ["text_generator.py"],
+    visibility = ["//visibility:public"],
+    deps=[
+        "model:GPT",
+    ],
+)
