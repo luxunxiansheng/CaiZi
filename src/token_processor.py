@@ -1,9 +1,8 @@
-"""
-Author: Bin.Li
-Email:  ornot2008@yahoo.com
-MIT License
-Copyright (c) 2025 debutpark.com
-"""
+""" 
+# Author: Bin.Li
+# Email:  ornot2008@yahoo.com
+# MIT License
+# Copyright (c) 2025 debutpark.com """
 
 
 from abc import ABC
@@ -28,7 +27,8 @@ class TikTokenizer(TokenProcessor):
     
     def __call__(self, input_text:Dict[str,str]) -> Dict[str, List[int]]:        
         text = input_text['text']        
-        integers = self.tokenizer.encode(text, allowed_special={"<|endoftext|>"})
+        integers = self.tokenizer.encode_ordinary(text)
+        integers.append(self.tokenizer.eot_token)
         return {"ids": integers}
         
     def decode(self, input_ids:Dict[str, List[int]]) -> Dict[str, str]:
