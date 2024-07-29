@@ -1,0 +1,20 @@
+
+py_test(
+    name = "test_multihead_attention",
+    srcs = ["test_multihead_attention.py"],
+    deps = [
+       "//src:config", 
+       "//src/model:multihead_attention",      
+    ],
+)
+
+py_test(
+    name = "test_transformer_block",
+    srcs = ["test_transformer_block.py"],
+    deps = [
+       "//src:config", 
+       "//src/model:transformer_block",      
+    ],
+
+
+)

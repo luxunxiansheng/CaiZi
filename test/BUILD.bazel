@@ -24,12 +24,3 @@ py_test(
        "//src:chunk_processor",      
     ],
 )
-
-py_test(
-    name = "test_multihead_attention",
-    srcs = ["test_multihead_attention.py"],
-    deps = [
-       "//src:config", 
-       "//src:multihead_attention",      
-    ],
-)

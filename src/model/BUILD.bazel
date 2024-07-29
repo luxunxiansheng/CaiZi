@@ -1,0 +1,13 @@
+
+py_library(
+    name="multihead_attention",
+    srcs=["multihead_attention.py"],
+    visibility = ["//visibility:public"],
+)
+
+py_library(
+    name="transformer_block",
+    srcs=["transformer_block.py"],
+    visibility = ["//visibility:public"],
+
+)

@@ -13,12 +13,16 @@ dataset:
   - name: "hai_zi_wang"
     path: "/workspaces/CaiZi/dataset/hai_zi_wang.txt"
 
-block_size: 1024 # maximum length of the text to be generated
-stride: 1 #  window stride for the dataset. The default value is 1, which means that the dataset is a contiguous block of text.
-n_embd: 768 # embedding dimension
-vocab_size: 50304 # GPT-2 vocab_size of 50257, padded up to nearest multiple of 64 for efficiency
-n_layer: 12 # number of layers
-n_head: 12 # number of heads
-dropout: 0.0 # dropout rate
-bias: True # whether to use bias in attention layer
 
+124M:
+  block_size: 1024 # maximum length of the text to be generated
+  stride: 1 #  window stride for the dataset. The default value is 1, which means that the dataset is a contiguous block of text.
+  n_embd: 768 # embedding dimension
+  vocab_size: 50304 # GPT-2 vocab_size of 50257, padded up to nearest multiple of 64 for efficiency
+  n_layer: 12 # number of layers
+  n_head: 12 # number of heads
+  dropout: 0.1 # dropout rate
+  bias: False # whether to use bias in attention layer
+
+
+batch_size: 1
