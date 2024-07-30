@@ -19,7 +19,7 @@ class TestGPT(unittest.TestCase):
         batch.append(torch.tensor(tokenizer.encode(txt1)))
         batch.append(torch.tensor(tokenizer.encode(txt2)))
         batch = torch.stack(batch, dim=0)
-        print(batch)
+        print(batch.shape)
         
         vocab_size = 50257
         dimension_embedding = 768

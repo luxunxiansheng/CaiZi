@@ -12,7 +12,7 @@ from document_processor import TextDocumentProcessor
 
 class TestDocumentProcessor(unittest.TestCase):
     def test_document_processor(self):
-        doc_processor = TextDocumentProcessor()
+        doc_processor = TextDocumentProcessor(section="test")
 
         raw_text = doc_processor({"item":gpt2_cfg.dataset[0]["path"]})
         print(raw_text)

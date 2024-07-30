@@ -12,5 +12,7 @@ pydantic
 pyarrow
 tqdm
 ipywidgets
+torcheval
+
 
 

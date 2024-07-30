@@ -22,7 +22,7 @@ class TokenProcessor(ABC):
         raise(NotImplementedError)
     
     @abstractmethod
-    def decode(self, tokens:Dict[str, int]) -> Dict[str, str]:
+    def decode(self, tokens:List[int]) -> str:
         raise(NotImplementedError)
     
 
@@ -36,8 +36,7 @@ class TikTokenizer(TokenProcessor):
         integers.append(self.tokenizer.eot_token)
         return {"ids": integers}
         
-    def decode(self, input_ids:Dict[str, List[int]]) -> Dict[str, str]:
-        ids = input_ids['ids']
-        text = self.tokenizer.decode(ids)
-        return {"text": text}
+    def decode(self, input_ids:List[int]) -> str:       
+        return  self.tokenizer.decode(input_ids)
         
+    

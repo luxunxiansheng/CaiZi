@@ -1,18 +1,22 @@
 project_root:
 
 dataset:
-  - name: "xjtu_1"
-    path: "/workspaces/CaiZi/dataset/xjtu_1.txt"
+  # - name: "xjtu_1"
+  #   path: "/workspaces/CaiZi/dataset/xjtu_1.txt"
 
-  - name: "qi_wang"
-    path: "/workspaces/CaiZi/dataset/qi_wang.txt"
+  # - name: "qi_wang"
+  #   path: "/workspaces/CaiZi/dataset/qi_wang.txt"
 
-  - name: "shu_wang"
-    path: "/workspaces/CaiZi/dataset/shu_wang.txt"
+  # - name: "shu_wang"
+  #   path: "/workspaces/CaiZi/dataset/shu_wang.txt"
 
-  - name: "hai_zi_wang"
-    path: "/workspaces/CaiZi/dataset/hai_zi_wang.txt"
+  # - name: "hai_zi_wang"
+  #   path: "/workspaces/CaiZi/dataset/hai_zi_wang.txt"
 
+  - name: "the_verdict"
+    path: "/workspaces/CaiZi/dataset/the_verdict.txt"
+
+train_ratio: 0.9
 
 124M:
   vocab_size: 50257 # GPT-2 vocab_size of 50257, padded up to nearest multiple of 64 for efficiency
@@ -25,5 +29,19 @@ dataset:
   bias: False # whether to use bias in attention layer
   
 
+ray_train:
+  num_workers: 1
+  use_gpu: True
+  num_gpus_per_worker: 1
+  num_cpus_per_worker: 1
 
-batch_size: 1
+  check_frquency: 1000
+  batch_size_per_worker: 4
+  epoch_start: 0
+  num_epoch_per_worker: 1
+
+  
+  
+  
+  
+
