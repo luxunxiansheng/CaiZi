@@ -23,6 +23,7 @@ dataset:
   n_head: 12 # number of heads
   dropout: 0.1 # dropout rate
   bias: False # whether to use bias in attention layer
+  
 
 
 batch_size: 1

@@ -4,7 +4,9 @@
     "context": "..",
     "dockerfile": "Dockerfile"
   },
-  "runArgs": ["--runtime=nvidia", "--gpus=all"],
+  "runArgs": ["--runtime=nvidia", 
+              "--gpus=all",
+              "--shm-size=8.30gb"],
   "customizations": {
     "vscode": {
       "extensions": [
