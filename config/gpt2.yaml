@@ -37,7 +37,6 @@ ray_train:
 
   check_frquency: 1000
   batch_size_per_worker: 4
-  epoch_start: 0
   num_epoch_per_worker: 1
 
   
