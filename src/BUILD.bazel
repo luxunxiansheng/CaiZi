@@ -31,3 +31,9 @@ py_library(
         "//src/model:GPT",
     ],
 )
+
+py_library(
+    name = "utility",
+    srcs = ["utility.py"],
+    visibility = ["//visibility:public"],
+)

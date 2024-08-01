@@ -31,6 +31,8 @@ class TestGPT(unittest.TestCase):
 
         model = GPT(vocab_size, dimension_embedding, block_size,n_layers, num_header, drop_rate, qkv_bias)
         
+        print(model)
+        
         out = model(batch)
         
         total_params = sum(p.numel() for p in model.parameters())

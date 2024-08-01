@@ -14,8 +14,6 @@ import os
 import torch
 from torch.nn import Module
 from torch.optim import Optimizer
-
-import ray
 from ray.train import Checkpoint
 
 def save_checkpoint(model: Module, 
@@ -35,8 +33,6 @@ def save_checkpoint(model: Module,
         os.path.join(temp_checkpoint_dir, "extra_state.pt"),
     )
 
-    checkpoint = Checkpoint.from_directory(temp_checkpoint_dir)
-    return checkpoint
 
 def resume_checkpoint(model: Module, optimizer: Optimizer,checkpoint:Checkpoint) -> int:
     with checkpoint.as_directory() as checkpoint_dir:

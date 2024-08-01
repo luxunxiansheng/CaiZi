@@ -33,3 +33,14 @@ py_test(
        "//src:text_generator",      
     ],
 )
+
+py_test(
+    name = "test_utility",
+    srcs = ["test_utility.py"],
+    deps = [
+       "//src:config", 
+       "//src:utility",      
+       "//src/model:GPT",
+    ],
+
+)
