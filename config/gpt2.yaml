@@ -1,5 +1,7 @@
 project_root:
 
+output_dir: ${project_root}/outputs
+
 dataset:
   # - name: "xjtu_1"
   #   path: "/workspaces/CaiZi/dataset/xjtu_1.txt"
