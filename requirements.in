@@ -6,7 +6,7 @@ jupyterlab
 watermark
 torch
 tiktoken
-ray
+ray[all]
 hydra-core
 pydantic
 pyarrow

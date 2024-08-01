@@ -22,8 +22,8 @@ train_ratio: 0.9
 
 124M:
   vocab_size: 50257 # GPT-2 vocab_size of 50257, padded up to nearest multiple of 64 for efficiency
-  block_size: 1024 # maximum length of the text to be generated
-  stride: 1 #  window stride for the dataset. The default value is 1, which means that the dataset is a contiguous block of text.
+  block_size: 256 # maximum length of the text to be generated
+  stride: 256 #  window stride for the dataset. The default value is 1, which means that the dataset is a contiguous block of text.
   n_embd: 768 # embedding dimension
   n_layer: 12 # number of layers
   n_head: 12 # number of heads
