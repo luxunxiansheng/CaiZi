@@ -19,7 +19,7 @@ from ray.train import Checkpoint
 def save_checkpoint(model: Module, 
                     optimizer: Optimizer, 
                     epoch: int, 
-                    temp_checkpoint_dir: str) -> Checkpoint:
+                    temp_checkpoint_dir: str) :
     torch.save(
         model.state_dict(),  # NOTE: Unwrap the model.
         os.path.join(temp_checkpoint_dir, "model.pt"),

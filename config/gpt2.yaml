@@ -24,11 +24,11 @@ train_ratio: 0.9
   vocab_size: 50257 # GPT-2 vocab_size of 50257, padded up to nearest multiple of 64 for efficiency
   block_size: 256 # maximum length of the text to be generated
   stride: 256 #  window stride for the dataset. The default value is 1, which means that the dataset is a contiguous block of text.
-  n_embd: 768 # embedding dimension
-  n_layer: 12 # number of layers
-  n_head: 12 # number of heads
-  dropout: 0.1 # dropout rate
-  bias: False # whether to use bias in attention layer
+  dimension_embedding: 768 # embedding dimension
+  num_layers: 12 # number of layers
+  num_headers: 12 # number of heads
+  drop_rate: 0.1 # dropout rate
+  qkv_bias: False # whether to use bias in attention layer
   
 
 ray_train:
@@ -37,9 +37,9 @@ ray_train:
   num_gpus_per_worker: 1
   num_cpus_per_worker: 1
 
-  check_frquency: 1000
+  check_frequency: 5
   batch_size_per_worker: 4
-  num_epoch_per_worker: 1
+  num_epoch_per_worker: 15
 
   
   
