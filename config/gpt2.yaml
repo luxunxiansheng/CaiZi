@@ -47,7 +47,7 @@ ray_train:
   
 
 
-  resume_training: True
+  resume_training: False
   best_checkpoint_dir: ${model_weights_dir}/best_checkpoint
 
 
