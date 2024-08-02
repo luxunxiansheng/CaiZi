@@ -44,6 +44,8 @@ ray_train:
   storage_path: ${output_dir}/gpt2
   name: "124M"
 
+  resume_training: False
+
 
 
  
