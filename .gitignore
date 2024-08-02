@@ -12,6 +12,8 @@ __pycache__/
 
 outputs/
 
-
+model_weights/*
+!model_weights/BUILD.bazel
 data/
+
 requirements.txt
