@@ -20,7 +20,7 @@ RUN set -e; \
         echo "requirements.in has not changed, skipping pip-compile"; \
     else \
         echo "requirements.in has changed, running pip-compile"; \
-        pip-compile requirements.in; \
+        pip-compile -v requirements.in; \
         sha256sum requirements.in > requirements.in.sha256; \
     fi
 

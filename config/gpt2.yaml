@@ -30,7 +30,9 @@ train_ratio: 0.9
   num_headers: 12 # number of heads
   drop_rate: 0.1 # dropout rate
   qkv_bias: False # whether to use bias in attention layer
-  
+
+  openai_gpt_dir: ${model_weights_dir}/openai/124M
+
 
 ray_train:
   num_workers: 1
@@ -38,12 +40,14 @@ ray_train:
   num_gpus_per_worker: 1
   num_cpus_per_worker: 1
 
-  check_frequency: 3
+  check_frequency: 1
   batch_size_per_worker: 4
-  num_epoch_per_worker: 15
+  num_epoch_per_worker: 10
 
   storage_path: ${output_dir}/gpt2
   name: "124M"
+
+  start_context: "Every effort moves you"
   
 
 
