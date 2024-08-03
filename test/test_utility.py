@@ -5,6 +5,7 @@ import tempfile
 import torch
 import ray
 
+from config import gpt2_cfg as cfg 
 from utility import save_checkpoint, resume_checkpoint
 
 from model.GPT import GPT
@@ -81,8 +82,32 @@ class RayClassTest(unittest.TestCase):
             self.assertEqual(epoch_start, 5)
             self.assertEqual(perplexity, 123.4)
             
-        
-        
+    def test_load_gpt2_setttings_params(self):
+      
+        model_dir =  cfg["124M"]["openai_gpt_dir"]
+
+        # Mock the necessary dependencies
+        mock_settings = {
+            "n_layer": 12
+        }
+        mock_params = {
+            "blocks": [{} for _ in range(mock_settings["n_layer"])]
+        }
+        mock_ckpt_dir = "/path/to/checkpoint_dir"
+
+        with patch("utility.json.load", return_value=mock_settings), \
+                patch("utility.np.squeeze", side_effect=lambda x: x), \
+                patch("utility.tf.train.latest_checkpoint", return_value=mock_ckpt_dir), \
+                patch("utility.tf.train.list_variables", return_value=[("model/var1", None), ("model/var2", None)]), \
+                patch("utility.tf.train.load_variable", side_effect=[np.array([1, 2, 3]), np.array([4, 5, 6])]):
+
+            # Call the function
+            settings, params = load_gpt2_settings_params(model_dir)
+
+            # Assertions
+            self.assertEqual(settings, mock_settings)
+            self.assertEqual(params, mock_params)
+    
 
 if __name__ == "__main__":
     unittest.main()
