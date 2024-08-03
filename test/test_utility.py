@@ -5,7 +5,6 @@ import tempfile
 import torch
 import ray
 
-from config import gpt2_cfg as cfg 
 from utility import save_checkpoint, resume_checkpoint
 
 from model.GPT import GPT
