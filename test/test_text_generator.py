@@ -1,22 +1,23 @@
 import unittest
 from uu import decode
 import torch
-import tiktoken
+
 
 from model.GPT import GPT
 from text_generator import TextGenerator
+from token_processor import TikTokenizer
 
 class TestTextGenerator(unittest.TestCase):
     def test_text_generator(self):
         
-        tokenizer = tiktoken.get_encoding("gpt2")
+        tokenizer = TikTokenizer()
         
         start_context = "Hello, I am"
 
-        encoded = tokenizer.encode(start_context)
-        print("encoded:", encoded)
+        encoded_tensor = tokenizer.encode(start_context)
+        print("encoded:", encoded_tensor)
 
-        encoded_tensor = torch.tensor(encoded).unsqueeze(0)
+        
         print("encoded_tensor.shape:", encoded_tensor.shape)
         
         vocab_size = 50257
@@ -28,10 +29,11 @@ class TestTextGenerator(unittest.TestCase):
         qkv_bias = False
 
         model = GPT(vocab_size, dimension_embedding, block_size,n_layers, num_header, drop_rate, qkv_bias)
+        
         model.eval()
         
         # Create a TextGenerator instance
-        text_generator = TextGenerator(model)
+        text_generator = TextGenerator(model, device = torch.device("cuda" if torch.cuda.is_available() else "cpu"))
         
         # Generate new text
         decoded = text_generator(encoded_tensor, max_new_tokens=6, context_size=1024)

@@ -14,6 +14,8 @@ from abc import ABC
 from abc import abstractmethod
 from typing import Dict, List
 
+import torch
+
 import tiktoken
     
 class TokenProcessor(ABC):
@@ -29,7 +31,7 @@ class TokenProcessor(ABC):
 class TikTokenizer(TokenProcessor):
     def __init__(self,name:str="gpt2"):
         self.tokenizer = tiktoken.get_encoding(name)
-    
+  
     def __call__(self, input_text:Dict[str,str]) -> Dict[str, List[int]]:        
         text = input_text['text']        
         integers = self.tokenizer.encode_ordinary(text)
@@ -39,4 +41,6 @@ class TikTokenizer(TokenProcessor):
     def decode(self, input_ids:List[int]) -> str:       
         return  self.tokenizer.decode(input_ids)
         
-    
+    def encode(self, text:str) -> torch.Tensor:
+        encoded = self.tokenizer.encode_ordinary(text)
+        return  torch.tensor(encoded).unsqueeze(0)

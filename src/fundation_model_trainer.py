@@ -12,6 +12,8 @@
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
+import token
+
 
 import ray.train
 import ray.train.torch
@@ -21,6 +23,7 @@ import torchmetrics
 import ray
 
 from document_processor import TextDocumentProcessor
+from text_generator import TextGenerator
 from token_processor import TikTokenizer
 from chunk_processor import ChunkProcessor
 from model.GPT import GPT
@@ -82,6 +85,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             "num_epoch_per_worker": self.cfg["ray_train"]["num_epoch_per_worker"],
             "resume_training": self.cfg["ray_train"]["resume_training"],
             "best_checkpoint_dir": self.cfg["ray_train"]["best_checkpoint_dir"],
+            "start_context": self.cfg["ray_train"]["start_context"],
         }
 
         dataset = self.cfg["dataset"]
@@ -164,6 +168,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         num_epoch_per_worker = cfg["num_epoch_per_worker"]
         resume_training = cfg["resume_training"]
         best_checkpoint_dir = cfg["best_checkpoint_dir"]
+        start_context = cfg["start_context"]
 
         # GPT model
         model = GPT(
@@ -176,7 +181,6 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             qkv_bias,
         )
         model = ray.train.torch.prepare_model(model)
-
         # optimizer
         optimizer = torch.optim.AdamW(model.parameters(), lr=0.0004, weight_decay=0.1)
 
@@ -219,7 +223,12 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             "train_loss": 0.0,
             "validate_loss": 0.0,
             "perplexity": 0.0,
+            "best_epoch": best_epoch,
+            "best_perplexity": best_perplexity,
         }
+
+        text_generator = TextGenerator(model, device=device)
+        tokenizer = TikTokenizer()
 
         for epoch in range(epoch_start + 1, num_epoch_per_worker + 1):
             model.train()
@@ -274,8 +283,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
 
                 report_metrics["validate_loss"] = validate_loss
                 report_metrics["perplexity"] = perplexity
-                report_metrics["best_epoch"] = best_epoch
-                report_metrics["best_perplexity"] = best_perplexity
+
 
                 # In standard DDP training, where the model is the same across all ranks,
                 # only the global rank 0 worker needs to save and report the checkpoint
@@ -283,6 +291,9 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
                     if perplexity < best_perplexity:
                         best_perplexity = perplexity
                         best_epoch = epoch
+                        
+                        report_metrics["best_epoch"] = best_epoch
+                        report_metrics["best_perplexity"] = best_perplexity
 
                         # create the best_checkpoint_dir if it does not exist
                         if not os.path.exists(best_checkpoint_dir):
@@ -297,3 +308,10 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
                         )
 
                     ray.train.report(metrics=report_metrics)
+
+            decoded = text_generator(
+                tokenizer.encode(start_context),
+                max_new_tokens=50,
+                context_size=block_size,
+            )
+            print(f"\n epoch:{epoch}: {decoded}")
