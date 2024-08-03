@@ -34,11 +34,8 @@ class TestTextGenerator(unittest.TestCase):
         text_generator = TextGenerator(model)
         
         # Generate new text
-        out = text_generator(encoded_tensor, max_new_tokens=6, context_size=1024)
-        print("out:", out)
-        print("out len:", len(out[0]))
-        
-        decoded = tokenizer.decode(out.squeeze().tolist())
+        decoded = text_generator(encoded_tensor, max_new_tokens=6, context_size=1024)
+
         print("decoded:", decoded)
         
         
