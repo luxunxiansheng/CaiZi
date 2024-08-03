@@ -35,8 +35,10 @@ class RayClassTest(unittest.TestCase):
         
 
         epoch = 5
+        perplexity = 123.4
+        
         with tempfile.TemporaryDirectory() as temp_checkpoint_dir:
-            save_checkpoint(model, optimizer, epoch, temp_checkpoint_dir)
+            save_checkpoint(model, optimizer, epoch, perplexity,temp_checkpoint_dir)
             
             checkpoint = ray.train.Checkpoint.from_directory(temp_checkpoint_dir)
             
@@ -57,8 +59,9 @@ class RayClassTest(unittest.TestCase):
         
 
         epoch = 5
+        perplexity = 123.4
         with tempfile.TemporaryDirectory() as temp_checkpoint_dir:
-            save_checkpoint(model, optimizer, epoch, temp_checkpoint_dir)
+            save_checkpoint(model, optimizer, epoch, perplexity,temp_checkpoint_dir)
             
             # Create the checkpoint, which is a reference to the directory.
             checkpoint = ray.train.Checkpoint.from_directory(temp_checkpoint_dir)
@@ -74,9 +77,10 @@ class RayClassTest(unittest.TestCase):
             model = GPT(vocab_size, dimension_embedding, block_size, n_layers, num_header, drop_rate, qkv_bias)
             optimizer = torch.optim.AdamW(model.parameters(), lr=0.0004, weight_decay=0.1)
         
-            epoch_start = resume_checkpoint(model, optimizer, checkpoint)
+            epoch_start,perplexity = resume_checkpoint(model, optimizer, checkpoint)
         
-            self.assertEqual(epoch_start, 6)
+            self.assertEqual(epoch_start, 5)
+            self.assertEqual(perplexity, 123.4)
             
         
         

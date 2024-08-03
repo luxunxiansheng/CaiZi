@@ -38,7 +38,6 @@ def save_checkpoint(
         {
             "epoch": epoch,
             "perplexity": perplexity,
-
         },
         os.path.join(best_checkpoint_dir, "extra_state.pt"),
     )
@@ -61,5 +60,4 @@ def resume_checkpoint(
     return (
         extra_state["epoch"],
         extra_state["perplexity"],
-
     )
