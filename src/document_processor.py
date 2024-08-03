@@ -32,10 +32,10 @@ class TextDocumentProcessor(DocumentProcessor):
         
         if self.section == "train":
             text = raw_text[:int(len(raw_text) * self.train_ratio)]
-        elif self.section == "test":
+        elif self.section == "validate":
             text = raw_text[int(len(raw_text) * self.train_ratio):]
         else:
-            raise ValueError("section must be either 'train' or 'test'")
+            raise ValueError("section must be either 'train' or 'validate'")
         
         
         return {"text": text}

@@ -1,0 +1,17 @@
+import unittest
+
+from config import gpt2_cfg as cfg 
+from fundation_model_trainer import RayGPT2FundationModelTrainer
+
+class TestGPT2FundationModelTrainer(unittest.TestCase):
+    def setUp(self) -> None:
+        self.trainer = RayGPT2FundationModelTrainer(cfg)
+    
+    
+    def test_train(self):
+        self.trainer.self_train()
+
+
+
+if __name__ == "__main__":
+    unittest.main()

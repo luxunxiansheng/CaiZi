@@ -14,7 +14,7 @@ class TestTokenProcessor(unittest.TestCase):
         print(encoded_text["ids"])
         
         
-        strings = self.token_processor.decode(encoded_text)
+        strings = self.token_processor.decode(encoded_text["ids"])
 
         print(strings)
         

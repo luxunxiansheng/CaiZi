@@ -33,3 +33,27 @@ py_test(
        "//src:text_generator",      
     ],
 )
+
+py_test(
+    name = "test_utility",
+    srcs = ["test_utility.py"],
+    deps = [
+       "//src:config", 
+       "//src:utility",      
+       "//src/model:GPT",
+    ],
+)
+
+py_test(
+    name = "test_fundation_model_trainer",
+    srcs = ["test_fundation_model_trainer.py"],
+    deps = [
+        "//src:config", 
+        "//src:fundation_model_trainer",      
+        "//src/model:GPT",
+        "//src:document_processor",     
+        "//src:token_processor",
+        "//src:chunk_processor",
+        "//src:utility",
+    ],  
+    )
