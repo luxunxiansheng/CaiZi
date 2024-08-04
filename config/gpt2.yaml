@@ -31,7 +31,7 @@ train_ratio: 0.9
   drop_rate: 0.1 # dropout rate
   qkv_bias: False # whether to use bias in attention layer
 
-  openai_gpt_dir: ${model_weights_dir}/openai/124M
+  openai_gpt_dir: ${model_weights_dir}/openai
 
 
 ray_train:
