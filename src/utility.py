@@ -71,10 +71,12 @@ def resume_checkpoint(
         extra_state["perplexity"],
     )
 
+
 def assign(left, right):
     if left.shape != right.shape:
         raise ValueError(f"Shape mismatch. Left: {left.shape}, Right: {right.shape}")
     return torch.nn.Parameter(torch.tensor(right))
+
 
 def download_file(url, destination):
     # Send a GET request to download the file
@@ -95,8 +97,15 @@ def download_file(url, destination):
             block_size = 1024  # 1 Kilobyte
 
             # Initialize the progress bar with total file size
-            progress_bar_description = os.path.basename(url)  # Extract filename from URL
-            with tqdm(total=file_size, unit="iB", unit_scale=True, desc=progress_bar_description) as progress_bar:
+            progress_bar_description = os.path.basename(
+                url
+            )  # Extract filename from URL
+            with tqdm(
+                total=file_size,
+                unit="iB",
+                unit_scale=True,
+                desc=progress_bar_description,
+            ) as progress_bar:
                 # Open the destination file in binary write mode
                 with open(destination, "wb") as file:
                     # Read the file in chunks and write to destination
@@ -110,8 +119,10 @@ def download_file(url, destination):
         s = (
             f"The specified URL ({url}) is incorrect, the internet connection cannot be established,"
             "\nor the requested file is temporarily unavailable.\nPlease visit the following website"
-            " for help: https://github.com/rasbt/LLMs-from-scratch/discussions/273")
+            " for help: https://github.com/rasbt/LLMs-from-scratch/discussions/273"
+        )
         print(s)
+
 
 def download_gpt2_model(model_size, models_dir):
     # Validate model size
@@ -123,9 +134,13 @@ def download_gpt2_model(model_size, models_dir):
     model_dir = os.path.join(models_dir)
     base_url = "https://openaipublic.blob.core.windows.net/gpt-2/models"
     filenames = [
-        "checkpoint", "encoder.json", "hparams.json",
-        "model.ckpt.data-00000-of-00001", "model.ckpt.index",
-        "model.ckpt.meta", "vocab.bpe"
+        "checkpoint",
+        "encoder.json",
+        "hparams.json",
+        "model.ckpt.data-00000-of-00001",
+        "model.ckpt.index",
+        "model.ckpt.meta",
+        "vocab.bpe",
     ]
 
     # Download files
@@ -136,13 +151,20 @@ def download_gpt2_model(model_size, models_dir):
         download_file(file_url, file_path)
 
 
-
 def load_gpt2_settings_params(model_dir):
     # Load settings and params
     tf_ckpt_path = tf.train.latest_checkpoint(model_dir)
+
+    # Open and read the file using a context manager to ensure it is closed properly
+    try:
+        with open(os.path.join(model_dir, "hparams.json"), 'r', encoding='utf-8') as file:
+            settings = json.load(file)
+         
+    except Exception as e:
+        print(f'Error reading hparams.json: {e}')
     
-    settings = json.load(open(os.path.join(model_dir, "hparams.json")))
-        # Initialize parameters dictionary with empty blocks for each layer
+    
+    # Initialize parameters dictionary with empty blocks for each layer
     params = {"blocks": [{} for _ in range(settings["n_layer"])]}
 
     # Iterate over each variable in the checkpoint
@@ -167,68 +189,87 @@ def load_gpt2_settings_params(model_dir):
         last_key = variable_name_parts[-1]
         target_dict[last_key] = variable_array
 
-
     return params
 
 
+def load_weights_into_gpt(gpt: GPT, params: dict):
+    gpt.position_embedding.weight = assign(gpt.position_embedding.weight, params["wpe"])
+    gpt.token_embedding.weight = assign(gpt.token_embedding.weight, params["wte"])
 
-def load_weights_into_gpt(gpt:GPT, params:dict):
-    gpt.pos_emb.weight = assign(gpt.pos_emb.weight, params['wpe'])
-    gpt.tok_emb.weight = assign(gpt.tok_emb.weight, params['wte'])
-    
-    for b in range(len(params["blocks"])):
+    for index in range(len(params["blocks"])):
         q_w, k_w, v_w = np.split(
-            (params["blocks"][b]["attn"]["c_attn"])["w"], 3, axis=-1)
-        gpt.trf_blocks[b].att.W_query.weight = assign(
-            gpt.trf_blocks[b].att.W_query.weight, q_w.T)
-        gpt.trf_blocks[b].att.W_key.weight = assign(
-            gpt.trf_blocks[b].att.W_key.weight, k_w.T)
-        gpt.trf_blocks[b].att.W_value.weight = assign(
-            gpt.trf_blocks[b].att.W_value.weight, v_w.T)
+            (params["blocks"][index]["attn"]["c_attn"])["w"],
+            3,
+            axis=-1,
+        )
+        gpt.transformer_blocks[index].attention.weights_query.weight = assign(
+            gpt.transformer_blocks[index].attention.weights_query.weight, q_w.T
+        )
+        gpt.transformer_blocks[index].attention.weights_key.weight = assign(
+            gpt.transformer_blocks[index].attention.weights_key.weight, k_w.T
+        )
+        gpt.transformer_blocks[index].attention.weights_value.weight = assign(
+            gpt.transformer_blocks[index].attention.weights_value.weight, v_w.T
+        )
 
         q_b, k_b, v_b = np.split(
-            (params["blocks"][b]["attn"]["c_attn"])["b"], 3, axis=-1)
-        gpt.trf_blocks[b].att.W_query.bias = assign(
-            gpt.trf_blocks[b].att.W_query.bias, q_b)
-        gpt.trf_blocks[b].att.W_key.bias = assign(
-            gpt.trf_blocks[b].att.W_key.bias, k_b)
-        gpt.trf_blocks[b].att.W_value.bias = assign(
-            gpt.trf_blocks[b].att.W_value.bias, v_b)
+            (params["blocks"][index]["attn"]["c_attn"])["b"],
+            3,
+            axis=-1,
+        )
+        gpt.transformer_blocks[index].attention.weights_query.bias = assign(
+            gpt.transformer_blocks[index].attention.weights_query.bias, q_b
+        )
+        gpt.transformer_blocks[index].attention.weights_key.bias = assign(
+            gpt.transformer_blocks[index].attention.weights_key.bias, k_b
+        )
+        gpt.transformer_blocks[index].attention.weights_value.bias = assign(
+            gpt.transformer_blocks[index].attention.weights_value.bias, v_b
+        )
 
-        gpt.trf_blocks[b].att.out_proj.weight = assign(
-            gpt.trf_blocks[b].att.out_proj.weight, 
-            params["blocks"][b]["attn"]["c_proj"]["w"].T)
-        gpt.trf_blocks[b].att.out_proj.bias = assign(
-            gpt.trf_blocks[b].att.out_proj.bias, 
-            params["blocks"][b]["attn"]["c_proj"]["b"])
+        gpt.transformer_blocks[index].attention.out_proj.weight = assign(
+            gpt.transformer_blocks[index].attention.out_proj.weight,
+            params["blocks"][index]["attn"]["c_proj"]["w"].T,
+        )
+        gpt.transformer_blocks[index].attention.out_proj.bias = assign(
+            gpt.transformer_blocks[index].attention.out_proj.bias,
+            params["blocks"][index]["attn"]["c_proj"]["b"],
+        )
 
-        gpt.trf_blocks[b].ff.layers[0].weight = assign(
-            gpt.trf_blocks[b].ff.layers[0].weight, 
-            params["blocks"][b]["mlp"]["c_fc"]["w"].T)
-        gpt.trf_blocks[b].ff.layers[0].bias = assign(
-            gpt.trf_blocks[b].ff.layers[0].bias, 
-            params["blocks"][b]["mlp"]["c_fc"]["b"])
-        gpt.trf_blocks[b].ff.layers[2].weight = assign(
-            gpt.trf_blocks[b].ff.layers[2].weight, 
-            params["blocks"][b]["mlp"]["c_proj"]["w"].T)
-        gpt.trf_blocks[b].ff.layers[2].bias = assign(
-            gpt.trf_blocks[b].ff.layers[2].bias, 
-            params["blocks"][b]["mlp"]["c_proj"]["b"])
+        gpt.transformer_blocks[index].mlp.layers[0].weight = assign(
+            gpt.transformer_blocks[index].mlp.layers[0].weight,
+            params["blocks"][index]["mlp"]["c_fc"]["w"].T,
+        )
+        gpt.transformer_blocks[index].mlp.layers[0].bias = assign(
+            gpt.transformer_blocks[index].mlp.layers[0].bias,
+            params["blocks"][index]["mlp"]["c_fc"]["b"],
+        )
+        gpt.transformer_blocks[index].mlp.layers[2].weight = assign(
+            gpt.transformer_blocks[index].mlp.layers[2].weight,
+            params["blocks"][index]["mlp"]["c_proj"]["w"].T,
+        )
+        gpt.transformer_blocks[index].mlp.layers[2].bias = assign(
+            gpt.transformer_blocks[index].mlp.layers[2].bias,
+            params["blocks"][index]["mlp"]["c_proj"]["b"],
+        )
 
-        gpt.trf_blocks[b].norm1.scale = assign(
-            gpt.trf_blocks[b].norm1.scale, 
-            params["blocks"][b]["ln_1"]["g"])
-        gpt.trf_blocks[b].norm1.shift = assign(
-            gpt.trf_blocks[b].norm1.shift, 
-            params["blocks"][b]["ln_1"]["b"])
-        gpt.trf_blocks[b].norm2.scale = assign(
-            gpt.trf_blocks[b].norm2.scale, 
-            params["blocks"][b]["ln_2"]["g"])
-        gpt.trf_blocks[b].norm2.shift = assign(
-            gpt.trf_blocks[b].norm2.shift, 
-            params["blocks"][b]["ln_2"]["b"])
+        gpt.transformer_blocks[index].layernorm_1.scale = assign(
+            gpt.transformer_blocks[index].layernorm_1.scale,
+            params["blocks"][index]["ln_1"]["g"],
+        )
+        gpt.transformer_blocks[index].layernorm_1.shift = assign(
+            gpt.transformer_blocks[index].layernorm_1.shift,
+            params["blocks"][index]["ln_1"]["b"],
+        )
+        gpt.transformer_blocks[index].layernorm_2.scale = assign(
+            gpt.transformer_blocks[index].layernorm_2.scale,
+            params["blocks"][index]["ln_2"]["g"],
+        )
+        gpt.transformer_blocks[index].layernorm_2.shift = assign(
+            gpt.transformer_blocks[index].layernorm_2.shift,
+            params["blocks"][index]["ln_2"]["b"],
+        )
 
-    gpt.final_norm.scale = assign(gpt.final_norm.scale, params["g"])
-    gpt.final_norm.shift = assign(gpt.final_norm.shift, params["b"])
+    gpt.final_layernorm.scale = assign(gpt.final_layernorm.scale, params["g"])
+    gpt.final_layernorm.shift = assign(gpt.final_layernorm.shift, params["b"])
     gpt.out_head.weight = assign(gpt.out_head.weight, params["wte"])
-    

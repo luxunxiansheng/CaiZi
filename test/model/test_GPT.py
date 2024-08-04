@@ -7,8 +7,6 @@ from model.GPT import GPT
 
 class TestGPT(unittest.TestCase):
     def test_forward(self):
-        
-
         tokenizer = tiktoken.get_encoding("gpt2")
 
         batch = []
@@ -38,16 +36,7 @@ class TestGPT(unittest.TestCase):
         total_params = sum(p.numel() for p in model.parameters())
         print(f"Total number of parameters: {total_params:,}")
         
-        # parameters = model.state_dict()
-        # for k,v in parameters.items():
-        #     print(k,v.shape)
         
-
-        # in_idx = torch.tensor([[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]])
-
-        # logits = model.forward(in_idx)
-
-        # self.assertEqual(logits.shape, (2, 5, vocab_size))
-
+        
 if __name__ == "__main__":
     unittest.main()
