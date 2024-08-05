@@ -24,7 +24,7 @@ import unittest
 from unittest.mock import patch
 from utility import load_gpt2_params
 
-@unittest.skip("skip")
+#@unittest.skip("skip")
 class RayClassTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -129,7 +129,7 @@ class UtilityTest(unittest.TestCase):
         self.model_size = "124M"
         self.model_dir =  cfg["124M"]["openai_gpt_dir"] +"/"+self.model_size
 
-    @unittest.skip("skip")
+    #@unittest.skip("skip")
     def test_download_and_load_gpt2_settings(self):
 
         download_gpt2_model(self.model_size, self.model_dir)
@@ -139,8 +139,6 @@ class UtilityTest(unittest.TestCase):
 
     #@unittest.skip("skip")
     def test_load_weights_to_gpt(self):
-     
-        
         tokenizer = TikTokenizer()
         start_context = "Every effort moves you"
         encoded_tensor = tokenizer.encode(start_context)
@@ -180,7 +178,7 @@ class UtilityTest(unittest.TestCase):
                                  top_k=50,)
         print("decoded:", decoded)
      
-    @unittest.skip("skip")
+    #@unittest.skip("skip")
     def test_load_gpt2_params(self):
 
         params = load_gpt2_params(self.model_dir)

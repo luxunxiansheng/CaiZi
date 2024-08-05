@@ -78,7 +78,7 @@ class MultiHeadAttention(nn.Module):
         values = values.transpose(1, 2)
 
         if self.flash:
-            use_dropout = 0.0 if not self.training else self.dropout
+            use_dropout = 0.0 if not self.training else self.dropout.p
             context_vec = nn.functional.scaled_dot_product_attention(
                 queries,
                 keys,

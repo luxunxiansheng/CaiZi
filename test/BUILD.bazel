@@ -30,7 +30,8 @@ py_test(
     srcs = ["test_text_generator.py"],
     deps = [
        "//src:config", 
-       "//src:text_generator",      
+       "//src:text_generator",  
+       "//src:token_processor",    
     ],
 )
 
@@ -41,6 +42,8 @@ py_test(
        "//src:config", 
        "//src:utility",      
        "//src/model:GPT",
+       "//src:token_processor",
+       "//src:text_generator",
     ],
 )
 
@@ -54,6 +57,7 @@ py_test(
         "//src:document_processor",     
         "//src:token_processor",
         "//src:chunk_processor",
+        "//src:text_generator",
         "//src:utility",
     ],  
     )
