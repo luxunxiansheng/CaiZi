@@ -20,9 +20,9 @@ RUN set -e; \
         echo "requirements.in has not changed, skipping pip-compile"; \
     else \
         echo "requirements.in has changed, running pip-compile"; \
-        pip-compile -v requirements.in; \
+        pip-compile --index-url https://pypi.tuna.tsinghua.edu.cn/simple  -v  requirements.in; \
         sha256sum requirements.in > requirements.in.sha256; \
     fi
 
 # Install dependencies
-RUN pip install -r requirements.txt
+RUN pip install  --index-url https://pypi.tuna.tsinghua.edu.cn/simple   -r requirements.txt
