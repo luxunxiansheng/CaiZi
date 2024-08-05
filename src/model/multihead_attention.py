@@ -49,6 +49,7 @@ class MultiHeadAttention(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
         self.flash = hasattr(torch.nn.functional, "scaled_dot_product_attention")
+
         if not self.flash:
             print(
                 "WARNING: using slow attention. Flash Attention requires PyTorch >= 2.0"
@@ -86,14 +87,6 @@ class MultiHeadAttention(nn.Module):
                 dropout_p=use_dropout,
                 is_causal=True,
             )
-
-            # Combine heads, where self.d_out = self.num_heads * self.head_dim
-            context_vec = (
-                context_vec.transpose(1, 2)
-                .contiguous()
-                .view(b, num_tokens, self.dimension_embedding)
-            )
-
         else:
 
             # Compute scaled dot-product attention (aka self-attention) with a causal mask
@@ -109,11 +102,14 @@ class MultiHeadAttention(nn.Module):
             attn_weights = self.dropout(attn_weights)
 
             # Shape: (b, num_tokens, num_heads, head_dim)
-            context_vec = (attn_weights @ values).transpose(1, 2)
+            context_vec = attn_weights @ values
 
-            # Combine heads, where self.d_out = self.num_heads * self.head_dim
-            context_vec = context_vec.reshape(b, num_tokens, self.dimension_embedding)
-
+        # Combine heads, where self.d_out = self.num_heads * self.head_dim
+        context_vec = (
+            context_vec.transpose(1, 2)
+            .contiguous()
+            .view(b, num_tokens, self.dimension_embedding)
+        )
         context_vec = self.out_proj(context_vec)  # optional projection
 
         return context_vec

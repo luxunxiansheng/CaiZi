@@ -174,7 +174,7 @@ class UtilityTest(unittest.TestCase):
         text_generator = TextGenerator(model, device = torch.device("cuda" if torch.cuda.is_available() else "cpu"))
         # Generate new text
         decoded = text_generator(encoded_tensor, 
-                                 max_new_tokens=5, 
+                                 max_new_tokens=25, 
                                  context_size=1024,
                                  temperature=1.5,
                                  top_k=50,)
