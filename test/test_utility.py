@@ -16,7 +16,7 @@ from utility import (
     save_checkpoint,
     resume_checkpoint,
     download_gpt2_model,
-    load_gpt2_settings_params,
+    load_gpt2_params,
 )
 
 from model.GPT import GPT
@@ -131,7 +131,7 @@ class UtilityTest(unittest.TestCase):
 
         download_gpt2_model(self.model_size, self.model_dir)
 
-        param = load_gpt2_settings_params(self.model_dir)
+        param = load_gpt2_params(self.model_dir)
         print(param)
 
     #@unittest.skip("skip")
@@ -176,7 +176,7 @@ class UtilityTest(unittest.TestCase):
         # print("--------------------------------------------------------------------------")
   
 
-        param = load_gpt2_settings_params(self.model_dir)
+        param = load_gpt2_params(self.model_dir)
         
         load_weights_into_gpt(model, param)
         

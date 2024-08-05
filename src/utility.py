@@ -12,6 +12,7 @@
 import os
 import json
 
+from typing import List
 import urllib.request
 from tqdm import tqdm
 
@@ -78,7 +79,7 @@ def assign(left, right):
     return torch.nn.Parameter(torch.tensor(right))
 
 
-def download_file(url, destination):
+def _download_file(url, destination):
     # Send a GET request to download the file
 
     try:
@@ -148,37 +149,38 @@ def download_gpt2_model(model_size, models_dir):
     for filename in filenames:
         file_url = os.path.join(base_url, model_size, filename)
         file_path = os.path.join(model_dir, filename)
-        download_file(file_url, file_path)
+        _download_file(file_url, file_path)
 
 
-def load_gpt2_settings_params(model_dir):
+
+def load_gpt2_params(model_dir: str) -> dict:
     # Load settings and params
     tf_ckpt_path = tf.train.latest_checkpoint(model_dir)
 
     # Open and read the file using a context manager to ensure it is closed properly
     try:
-        with open(os.path.join(model_dir, "hparams.json"), 'r', encoding='utf-8') as file:
-            settings = json.load(file)
+        with open(os.path.join(model_dir, "hparams.json")) as file:
+            settings: dict = json.load(file)
          
     except Exception as e:
         print(f'Error reading hparams.json: {e}')
     
     
     # Initialize parameters dictionary with empty blocks for each layer
-    params = {"blocks": [{} for _ in range(settings["n_layer"])]}
+    params: dict = {"blocks": [{} for _ in range(settings["n_layer"])]}
 
     # Iterate over each variable in the checkpoint
     for name, _ in tf.train.list_variables(tf_ckpt_path):
         # Load the variable and remove singleton dimensions
-        variable_array = np.squeeze(tf.train.load_variable(tf_ckpt_path, name))
+        variable_array: np.ndarray = np.squeeze(tf.train.load_variable(tf_ckpt_path, name))
 
         # Process the variable name to extract relevant parts
-        variable_name_parts = name.split("/")[1:]  # Skip the 'model/' prefix
+        variable_name_parts: List[str] = name.split("/")[1:]  # Skip the 'model/' prefix
 
         # Identify the target dictionary for the variable
-        target_dict = params
+        target_dict: dict = params
         if variable_name_parts[0].startswith("h"):
-            layer_number = int(variable_name_parts[0][1:])
+            layer_number: int = int(variable_name_parts[0][1:])
             target_dict = params["blocks"][layer_number]
 
         # Recursively access or create nested dictionaries
@@ -186,13 +188,13 @@ def load_gpt2_settings_params(model_dir):
             target_dict = target_dict.setdefault(key, {})
 
         # Assign the variable array to the last key
-        last_key = variable_name_parts[-1]
+        last_key: str = variable_name_parts[-1]
         target_dict[last_key] = variable_array
 
     return params
 
 
-def load_weights_into_gpt(gpt: GPT, params: dict):
+def load_weights_into_gpt(gpt: GPT, params: dict) -> None:
     gpt.position_embedding.weight = assign(gpt.position_embedding.weight, params["wpe"])
     gpt.token_embedding.weight = assign(gpt.token_embedding.weight, params["wte"])
 
