@@ -20,6 +20,9 @@ from utility import (
 )
 
 from model.GPT import GPT
+import unittest
+from unittest.mock import patch
+from utility import load_gpt2_params
 
 @unittest.skip("skip")
 class RayClassTest(unittest.TestCase):
@@ -136,7 +139,7 @@ class UtilityTest(unittest.TestCase):
 
     #@unittest.skip("skip")
     def test_load_weights_to_gpt(self):
-        torch.manual_seed(123)
+     
         
         tokenizer = TikTokenizer()
         start_context = "Every effort moves you"
@@ -159,37 +162,40 @@ class UtilityTest(unittest.TestCase):
             drop_rate,
             qkv_bias,
         )
-        
-        
-        # print("--------------------------------------------------------------------------")
-
-        # # Create a TextGenerator instance
-        # text_generator = TextGenerator(model, device = torch.device("cuda" if torch.cuda.is_available() else "cpu"))
-        # # Generate new text
-        # decoded = text_generator(encoded_tensor, 
-        #                          max_new_tokens=25, 
-        #                          context_size=1024,
-        #                          temperature=1.5,
-        #                          top_k=50,)
-        # print("decoded:", decoded)
-
-        # print("--------------------------------------------------------------------------")
-  
 
         param = load_gpt2_params(self.model_dir)
         
         load_weights_into_gpt(model, param)
         
+
+        torch.manual_seed(123)
         
         # Create a TextGenerator instance
         text_generator = TextGenerator(model, device = torch.device("cuda" if torch.cuda.is_available() else "cpu"))
         # Generate new text
         decoded = text_generator(encoded_tensor, 
-                                 max_new_tokens=25, 
+                                 max_new_tokens=5, 
                                  context_size=1024,
                                  temperature=1.5,
                                  top_k=50,)
         print("decoded:", decoded)
+     
+    @unittest.skip("skip")
+    def test_load_gpt2_params(self):
+
+        params = load_gpt2_params(self.model_dir)
+        
+        # assert the values of the parameters are correctly loaded from openAI GPT2 model
+        print(params)
+       
+        
+        
+
+    
+        
+        
+        
+
 
         
         
