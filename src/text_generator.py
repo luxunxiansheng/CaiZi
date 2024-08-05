@@ -31,10 +31,10 @@ class TextGenerator:
         top_k=None,
         eos_id=None,
     ) -> str:
+        
         self.model.eval()
         for _ in range(max_new_tokens):
             idx = idx.to(self.device)
-
             # Crop current context if it exceeds the supported context size
             # E.g., if LLM supports only 5 tokens, and the context size is 10
             # then only the last 5 tokens are used as context
@@ -80,8 +80,8 @@ class TextGenerator:
             # Append sampled index to the running sequence
             idx = torch.cat((idx, idx_next), dim=1)  # (batch, n_tokens+1)
 
-        idx = idx.cpu()
-
-        decoded_text = self.tokenizer.decode(idx[0].tolist())
-        decoded_text = decoded_text.replace("\n", " ")
+            idx = idx.cpu()
+        
+        flat = idx.squeeze(0)
+        decoded_text = self.tokenizer.decode(flat.tolist())
         return decoded_text

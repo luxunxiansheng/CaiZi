@@ -18,7 +18,7 @@ class MLP(nn.Module):
             nn.Linear(dimension_embedding, 4 * dimension_embedding),
             nn.GELU(),
             nn.Linear(4 * dimension_embedding, dimension_embedding),
-            nn.Dropout(dropout)
+           
         )
 
     def forward(self, x):
