@@ -12,14 +12,15 @@
 import torch.nn as nn
 
 class MLP(nn.Module):
-    def __init__(self, dimension_embedding,dropout=0.1):
+    def __init__(self, dimension_embedding: int):
         super().__init__()
-        self.layers = nn.Sequential(
-            nn.Linear(dimension_embedding, 4 * dimension_embedding),
-            nn.GELU(),
-            nn.Linear(4 * dimension_embedding, dimension_embedding),
-           
-        )
+      
+        self.fc=nn.Linear(dimension_embedding, 4 * dimension_embedding)
+        self.gelu=nn.GELU()
+        self.projection=nn.Linear(4 * dimension_embedding, dimension_embedding)
 
     def forward(self, x):
-        return self.layers(x)
+        x = self.fc(x)
+        x = self.gelu(x)
+        x = self.projection(x)
+        return x

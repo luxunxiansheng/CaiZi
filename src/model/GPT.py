@@ -9,6 +9,8 @@
 ###########################################
 """
 
+import math
+
 import torch.nn as nn
 import torch
 
@@ -29,6 +31,40 @@ class GPT(nn.Module):
         self.out_head = nn.Linear(
             dimension_embedding, vocab_size, bias=False
         )
+        
+        # Tie weights
+        self.token_embedding.weight= self.out_head.weight
+        
+        self.apply(self._init_weights)
+        
+                # apply special scaled init to the residual projections, per GPT-2 paper
+        for name, parameter in self.named_parameters():
+            if name.endswith('projection.weight'):
+                torch.nn.init.normal_(parameter, mean=0.0, std=0.02/math.sqrt(2 * n_layers))
+
+
+                # report number of parameters
+        print("number of parameters: %.2fM" % (self.get_num_params()/1e6,))
+
+    def get_num_params(self, non_embedding=True):
+        """
+        Return the number of parameters in the model.
+        For non-embedding count (default), the position embeddings get subtracted.
+        The token embeddings would too, except due to the parameter sharing these
+        params are actually used as weights in the final layer, so we include them.
+        """
+        n_params = sum(parameter.numel() for parameter in self.parameters())
+        if non_embedding:
+            n_params -= self.position_embedding.weight.numel()
+        return n_params    
+    
+    def _init_weights(self, module):
+        if isinstance(module, nn.Linear):
+            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
+            if module.bias is not None:
+                torch.nn.init.zeros_(module.bias)
+        elif isinstance(module, nn.Embedding):
+            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
 
     def forward(self, in_idx: torch.Tensor) -> torch.Tensor:
         batch_size, seq_len = in_idx.shape

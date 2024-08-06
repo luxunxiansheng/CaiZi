@@ -16,15 +16,18 @@ dataset:
   # - name: "hai_zi_wang"
   #   path: "/workspaces/CaiZi/dataset/hai_zi_wang.txt"
 
-  - name: "the_verdict"
-    path: "/workspaces/CaiZi/dataset/the_verdict.txt"
+  #- name: "the_verdict"
+  #  path: "/workspaces/CaiZi/dataset/the_verdict.txt"
+
+  - name: "tiny_shakespeare"
+    path: "/workspaces/CaiZi/dataset/tiny_shakespeare.txt"
 
 train_ratio: 0.9
 
 124M:
   vocab_size: 50257 # GPT-2 vocab_size of 50257, padded up to nearest multiple of 64 for efficiency
-  block_size: 256 # maximum length of the text to be generated
-  stride: 256 #  window stride for the dataset. The default value is 1, which means that the dataset is a contiguous block of text.
+  block_size: 1024 # maximum length of the text to be generated
+  stride: 1024 #  window stride for the dataset. 
   dimension_embedding: 768 # embedding dimension
   num_layers: 12 # number of layers
   num_headers: 12 # number of heads
@@ -42,14 +45,13 @@ ray_train:
 
   check_frequency: 1
   batch_size_per_worker: 4
-  num_epoch_per_worker: 10
+  num_epoch_per_worker: 20
 
   storage_path: ${output_dir}/gpt2
   name: "124M"
 
   start_context: "Every effort moves you"
   
-
 
   resume_training: False
   best_checkpoint_dir: ${model_weights_dir}/best_checkpoint
