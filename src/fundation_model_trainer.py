@@ -12,9 +12,9 @@
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
-import token
 
 
+from attr import validate
 import ray.train
 import ray.train.torch
 import torch
@@ -105,6 +105,9 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
                 "train": train_chunked_tokens,
                 "validate": validate_chunked_tokens,
             },
+            dataset_config=ray.train.DataConfig(
+                datasets_to_split=["train"],
+            ),
             scaling_config=ray.train.ScalingConfig(
                 num_workers=self.cfg["ray_train"]["num_workers"],
                 use_gpu=self.cfg["ray_train"]["use_gpu"],
@@ -136,6 +139,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
                 "env_vars": {
                     "PYTHONPATH": "$PYTHONPATH:" + self.cfg.project_root + "/src",
                     "RAY_DATA_VERBOSE_PROGRESS": "1",
+                    "RAY_DEBUG": "1",
                 },
                 "working_dir": self.cfg.project_root,
                 "excludes": [
@@ -237,11 +241,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
 
             train_loss = 0
             batch_count = 0
-            for batch in train_data_shard.iter_torch_batches(
-                batch_size=batch_size_per_worker,
-                drop_last=True,
-                local_shuffle_buffer_size=1000,
-            ):
+            for batch in train_data_shard.iter_torch_batches(batch_size=batch_size_per_worker,drop_last=True,local_shuffle_buffer_size=1000,):
                 batch_count += 1
                 input_ids = batch["input_ids"]
                 logits = model(input_ids)
@@ -253,12 +253,9 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
                 optimizer.step()
 
             train_loss = train_loss / batch_count
-
             report_metrics["train_loss"] = train_loss
 
             validate_loss = 0
-            perplexity = 0
-
             if epoch % check_frequency == 0:
 
                 model.eval()
@@ -284,14 +281,13 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
                 report_metrics["validate_loss"] = validate_loss
                 report_metrics["perplexity"] = perplexity
 
-
-                # In standard DDP training, where the model is the same across all ranks,
+                #In standard DDP training, where the model is the same across all ranks,
                 # only the global rank 0 worker needs to save and report the checkpoint
                 if ray.train.get_context().get_world_rank() == 0:
                     if perplexity < best_perplexity:
                         best_perplexity = perplexity
                         best_epoch = epoch
-                        
+
                         report_metrics["best_epoch"] = best_epoch
                         report_metrics["best_perplexity"] = best_perplexity
 
@@ -307,7 +303,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
                             best_checkpoint_dir,
                         )
 
-                    ray.train.report(metrics=report_metrics)
+                ray.train.report(metrics=report_metrics)
 
             decoded = text_generator(
                 tokenizer.encode(start_context),
