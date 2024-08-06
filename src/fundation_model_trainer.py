@@ -298,7 +298,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
                             best_checkpoint_dir,
                         )
 
-                ray.train.report(metrics=report_metrics)
+            ray.train.report(metrics=report_metrics)
 
             decoded = text_generator(
                 tokenizer.encode(start_context),
