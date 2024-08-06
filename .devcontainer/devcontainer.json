@@ -41,7 +41,8 @@
         "ms-python.black-formatter",
         "ms-python.isort",
         "ms-toolsai.jupyter-keymap",
-        "vscode-icons-team.vscode-icons"
+        "vscode-icons-team.vscode-icons",
+        "anyscalecompute.ray-distributed-debugger"
       ]
     }
   },
