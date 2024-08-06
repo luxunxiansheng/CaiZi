@@ -14,7 +14,6 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 
 
-from attr import validate
 import ray.train
 import ray.train.torch
 import torch
@@ -155,8 +154,8 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         )
 
         # convience for debugging
-        ray.data.DataContext.get_current().execution_options.verbose_progress = True
-        ray.data.DataContext.log_internal_stack_trace_to_stdout = True
+        ray.data.DataContext.get_current().execution_options.verbose_progress = False
+        ray.data.DataContext.log_internal_stack_trace_to_stdout = False
 
     @staticmethod
     def _train_loop_per_worker(cfg):
@@ -255,17 +254,13 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             train_loss = train_loss / batch_count
             report_metrics["train_loss"] = train_loss
 
-            validate_loss = 0
+            
             if epoch % check_frequency == 0:
-
+                validate_loss = 0
                 model.eval()
-
                 with torch.no_grad():
                     batch_count = 0
-                    for batch in validate_data_shard.iter_torch_batches(
-                        batch_size=1,
-                        drop_last=False,
-                    ):
+                    for batch in validate_data_shard.iter_torch_batches(batch_size=1,drop_last=False,):
                         batch_count += 1
                         input_ids = batch["input_ids"]
                         logits = model(input_ids)
@@ -280,17 +275,17 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
 
                 report_metrics["validate_loss"] = validate_loss
                 report_metrics["perplexity"] = perplexity
+                
+                if perplexity < best_perplexity:
+                    best_perplexity = perplexity
+                    best_epoch = epoch
 
-                #In standard DDP training, where the model is the same across all ranks,
-                # only the global rank 0 worker needs to save and report the checkpoint
-                if ray.train.get_context().get_world_rank() == 0:
-                    if perplexity < best_perplexity:
-                        best_perplexity = perplexity
-                        best_epoch = epoch
-
-                        report_metrics["best_epoch"] = best_epoch
-                        report_metrics["best_perplexity"] = best_perplexity
-
+                    report_metrics["best_epoch"] = best_epoch
+                    report_metrics["best_perplexity"] = best_perplexity
+    
+                    #In standard DDP training, where the model is the same across all ranks,
+                    # only the global rank 0 worker needs to save and report the checkpoint
+                    if ray.train.get_context().get_world_rank() == 0:
                         # create the best_checkpoint_dir if it does not exist
                         if not os.path.exists(best_checkpoint_dir):
                             os.makedirs(best_checkpoint_dir)
@@ -310,4 +305,4 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
                 max_new_tokens=50,
                 context_size=block_size,
             )
-            print(f"\n epoch:{epoch}: {decoded}")
+            

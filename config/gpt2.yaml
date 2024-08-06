@@ -38,14 +38,14 @@ train_ratio: 0.9
 
 
 ray_train:
-  num_workers: 2
+  num_workers: 4
   use_gpu: True
   num_gpus_per_worker: 1
   num_cpus_per_worker: 1
 
-  check_frequency: 1
-  batch_size_per_worker: 4
-  num_epoch_per_worker: 10
+  check_frequency: 10
+  batch_size_per_worker: 8
+  num_epoch_per_worker: 100
 
   storage_path: ${output_dir}/gpt2
   name: "124M"
