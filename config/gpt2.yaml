@@ -45,7 +45,7 @@ ray_train:
 
   check_frequency: 5
   batch_size_per_worker: 12
-  num_epoch_per_worker: 70
+  num_epoch_per_worker: 20
 
   storage_path: ${output_dir}/gpt2
   name: "124M"

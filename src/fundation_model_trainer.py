@@ -12,6 +12,7 @@
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
+import time
 
 
 import ray.train
@@ -234,12 +235,15 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         tokenizer = TikTokenizer()
 
         for epoch in range(epoch_start + 1, num_epoch_per_worker + 1):
+            
+            
             model.train()
 
             report_metrics["epoch"] = epoch
 
             train_loss = 0
             batch_count = 0
+            t0 = time.time()
             for batch in train_data_shard.iter_torch_batches(batch_size=batch_size_per_worker,drop_last=True,local_shuffle_buffer_size=1000,):
                 batch_count += 1
                 input_ids = batch["input_ids"]
@@ -250,10 +254,23 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
+                
+            torch.cuda.synchronize()
+            
+            t1 = time.time()
+            dt = (t1 - t0)*1000
+            
+            token_per_second = batch_count * batch_size_per_worker * block_size / dt
+            
 
             train_loss = train_loss / batch_count
+            
+            report_metrics["time_ms"] = dt
+            report_metrics["token_per_second"] = token_per_second
+            
             report_metrics["train_loss"] = train_loss
 
+           
             
             if epoch % check_frequency == 0:
                 validate_loss = 0
@@ -300,9 +317,5 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
 
             ray.train.report(metrics=report_metrics)
 
-            decoded = text_generator(
-                tokenizer.encode(start_context),
-                max_new_tokens=50,
-                context_size=block_size,
-            )
+
             
