@@ -42,5 +42,10 @@ py_library(
     name = "fundation_model_trainer",
     srcs = ["fundation_model_trainer.py"],
     visibility = ["//visibility:public"],
+    deps = [
+        "//src/model:GPT",
+        "//src/model:gpt_lr_scheduler",
+
+    ]
 
 )

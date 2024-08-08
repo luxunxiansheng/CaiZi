@@ -40,7 +40,10 @@ py_library(
         ":transformer_block",
         ":layer_norm",
 ],
+)
 
-
-
+py_library(
+    name = "gpt_lr_scheduler",
+    srcs = ["gpt_lr_scheduler.py"],
+    visibility = ["//visibility:public"],
 )

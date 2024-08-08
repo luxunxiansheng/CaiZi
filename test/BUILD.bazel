@@ -38,12 +38,14 @@ py_test(
 py_test(
     name = "test_utility",
     srcs = ["test_utility.py"],
+    data = ["//model_weights:model_weights"],
     deps = [
        "//src:config", 
        "//src:utility",      
        "//src/model:GPT",
        "//src:token_processor",
        "//src:text_generator",
+     
     ],
 )
 

@@ -238,20 +238,20 @@ def load_weights_into_gpt(gpt: GPT, params: dict) -> None:
             params["blocks"][index]["attn"]["c_proj"]["b"],
         )
 
-        gpt.transformer_blocks[index].mlp.layers[0].weight = assign(
-            gpt.transformer_blocks[index].mlp.layers[0].weight,
+        gpt.transformer_blocks[index].mlp.fc.weight = assign(
+            gpt.transformer_blocks[index].mlp.fc.weight,
             params["blocks"][index]["mlp"]["c_fc"]["w"].T,
         )
-        gpt.transformer_blocks[index].mlp.layers[0].bias = assign(
-            gpt.transformer_blocks[index].mlp.layers[0].bias,
+        gpt.transformer_blocks[index].mlp.fc.bias = assign(
+            gpt.transformer_blocks[index].mlp.fc.bias,
             params["blocks"][index]["mlp"]["c_fc"]["b"],
         )
-        gpt.transformer_blocks[index].mlp.layers[2].weight = assign(
-            gpt.transformer_blocks[index].mlp.layers[2].weight,
+        gpt.transformer_blocks[index].mlp.projection.weight = assign(
+            gpt.transformer_blocks[index].mlp.projection.weight,
             params["blocks"][index]["mlp"]["c_proj"]["w"].T,
         )
-        gpt.transformer_blocks[index].mlp.layers[2].bias = assign(
-            gpt.transformer_blocks[index].mlp.layers[2].bias,
+        gpt.transformer_blocks[index].mlp.projection.bias = assign(
+            gpt.transformer_blocks[index].mlp.projection.bias,
             params["blocks"][index]["mlp"]["c_proj"]["b"],
         )
 

@@ -1,5 +1,5 @@
 filegroup(
     name="model_weights",
-    srcs=glob(["*"]),
+    srcs=glob(["**"]),
     visibility=["//visibility:public"],
 )

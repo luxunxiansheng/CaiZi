@@ -15,7 +15,7 @@ class TestDocumentProcessor(unittest.TestCase):
         doc_processor = TextDocumentProcessor(section="validate")
 
         raw_text = doc_processor({"item":gpt2_cfg.dataset[0]["path"]})
-        print(raw_text)
+        print(len(raw_text))
    
 
     

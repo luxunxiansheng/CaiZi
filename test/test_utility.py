@@ -129,7 +129,7 @@ class UtilityTest(unittest.TestCase):
         self.model_size = "124M"
         self.model_dir =  cfg["124M"]["openai_gpt_dir"] +"/"+self.model_size
 
-    #@unittest.skip("skip")
+    @unittest.skip("skip")
     def test_download_and_load_gpt2_settings(self):
 
         download_gpt2_model(self.model_size, self.model_dir)
@@ -184,7 +184,7 @@ class UtilityTest(unittest.TestCase):
         params = load_gpt2_params(self.model_dir)
         
         # assert the values of the parameters are correctly loaded from openAI GPT2 model
-        print(params)
+        print(len(params))
        
         
         

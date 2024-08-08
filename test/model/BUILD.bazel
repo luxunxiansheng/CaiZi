@@ -25,3 +25,12 @@ py_test(
        "//src/model:GPT",      
     ],
 )
+
+py_test(
+    name = "test_gpt_lr_scheduler",
+    srcs = ["test_gpt_lr_scheduler.py"],
+    deps = [
+
+       "//src/model:gpt_lr_scheduler",      
+    ],
+)

@@ -48,6 +48,7 @@
   },
   "features": {
     "ghcr.io/devcontainers-contrib/features/prometheus:1": {},
+    "ghcr.io/schlich/devcontainer-features/grafana:1": {},
   },
 
 

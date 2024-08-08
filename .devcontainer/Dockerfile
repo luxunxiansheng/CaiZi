@@ -1,6 +1,7 @@
 FROM pytorch/pytorch:2.3.1-cuda12.1-cudnn8-runtime
 
 RUN apt-get update && \
+    apt-get install -y sudo && \
     apt-get install -y --no-install-recommends git && \
     apt-get install -y build-essential && \
     apt-get install wget -y && \

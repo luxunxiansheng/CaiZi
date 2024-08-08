@@ -12,6 +12,7 @@
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
+
 import time
 
 
@@ -23,16 +24,16 @@ import torchmetrics
 import ray
 
 from document_processor import TextDocumentProcessor
-from text_generator import TextGenerator
 from token_processor import TikTokenizer
 from chunk_processor import ChunkProcessor
 from model.GPT import GPT
+from model.gpt_lr_scheduler import GPTLRScheduler
 from utility import resume_checkpoint, save_checkpoint
 
 
 class FundationModelTrainer(ABC):
     @abstractmethod
-    def self_train(self):
+    def self_supervised_train(self):
         pass
 
     @abstractmethod
@@ -71,7 +72,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
 
         return train_chunked_tokens, validate_chunked_tokens
 
-    def self_train(self):
+    def self_supervised_train(self):
         train_loop_config = {
             "vocab_size": self.cfg["124M"]["vocab_size"],
             "dimension_embedding": self.cfg["124M"]["dimension_embedding"],
@@ -86,6 +87,10 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             "resume_training": self.cfg["ray_train"]["resume_training"],
             "best_checkpoint_dir": self.cfg["ray_train"]["best_checkpoint_dir"],
             "start_context": self.cfg["ray_train"]["start_context"],
+            "warmup_steps": self.cfg["ray_train"]["warmup_steps"],
+            "max_steps": self.cfg["ray_train"]["max_steps"],
+            "max_lr": self.cfg["ray_train"]["max_lr"],
+            "min_lr": self.cfg["ray_train"]["min_lr"],
         }
 
         dataset = self.cfg["dataset"]
@@ -99,7 +104,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         )
 
         trainer = ray.train.torch.TorchTrainer(
-            train_loop_per_worker=RayGPT2FundationModelTrainer._train_loop_per_worker,
+            train_loop_per_worker=RayGPT2FundationModelTrainer._train_workload_per_worker,
             train_loop_config=train_loop_config,
             datasets={
                 "train": train_chunked_tokens,
@@ -152,6 +157,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
                 ],
             },
             ignore_reinit_error=True,
+            _metrics_export_port = 8080,
         )
 
         # convience for debugging
@@ -159,7 +165,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         ray.data.DataContext.log_internal_stack_trace_to_stdout = False
 
     @staticmethod
-    def _train_loop_per_worker(cfg):
+    def _train_workload_per_worker(cfg):
         vocab_size = cfg["vocab_size"]
         dimension_embedding = cfg["dimension_embedding"]
         block_size = cfg["block_size"]
@@ -172,58 +178,48 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         num_epoch_per_worker = cfg["num_epoch_per_worker"]
         resume_training = cfg["resume_training"]
         best_checkpoint_dir = cfg["best_checkpoint_dir"]
-        start_context = cfg["start_context"]
+        warmup_steps = cfg["warmup_steps"]
+        max_steps = cfg["max_steps"]
+        max_lr = cfg["max_lr"]
+        min_lr = cfg["min_lr"]
+        
+        rank = ray.train.get_context().get_world_rank()
+        device = torch.device(f"cuda:{rank}" if torch.cuda.is_available() else "cpu")
+  
+        # data
+        train_data_shard, validate_data_shard = RayGPT2FundationModelTrainer._prepare_data()
 
         # GPT model
-        model = GPT(
-            vocab_size,
-            dimension_embedding,
-            block_size,
-            num_layers,
-            num_headers,
-            drop_rate,
-            qkv_bias,
-        )
-        model = ray.train.torch.prepare_model(model)
-        # optimizer
-        optimizer = torch.optim.AdamW(model.parameters(), lr=0.0004, weight_decay=0.1)
+        model = RayGPT2FundationModelTrainer._prepare_model(vocab_size, dimension_embedding, block_size, num_layers, num_headers, drop_rate, qkv_bias)
 
+        # optimizer
+        optimizer = RayGPT2FundationModelTrainer._prepare_optimizer(max_lr, model)
+
+        # lr scheduler
+        scheduler = RayGPT2FundationModelTrainer._prepare_lr_scheduler(warmup_steps, max_steps, max_lr, min_lr, optimizer)
+       
+        # loss function
+        loss_function = RayGPT2FundationModelTrainer._prepare_loss_function()
+        
+        # metrics
+        metric = RayGPT2FundationModelTrainer._prepare_metric(device)
+ 
         # ====== Resume training state from the checkpoint. ======
         epoch_start = 0
         best_perplexity = float("inf")
         best_epoch = 0
 
         if resume_training:
-            if os.path.exists(best_checkpoint_dir):
-                checkpoint = ray.train.Checkpoint.from_directory(best_checkpoint_dir)
-            else:
-                checkpoint = None
-            if checkpoint:
-                best_epoch, best_perplexity = resume_checkpoint(
-                    model, optimizer, checkpoint
-                )
-                epoch_start = best_epoch
-                print(
-                    f"Resumed training from best_epoch {best_epoch},best_perplexity {best_perplexity}"
-                )
-            else:
-                print(f"Checkpoint not found, starting from epoch 0")
+            epoch_start, best_perplexity, best_epoch = RayGPT2FundationModelTrainer._resume_training(best_checkpoint_dir, model, optimizer)
 
-        # loss function
-        loss_function = torch.nn.CrossEntropyLoss()
-
-        rank = ray.train.get_context().get_world_rank()
-        device = torch.device(f"cuda:{rank}" if torch.cuda.is_available() else "cpu")
-
-        # metrics
-        metric = torchmetrics.text.Perplexity().to(device)
-
-        # data
-        train_data_shard = ray.train.get_dataset_shard("train")
-        validate_data_shard = ray.train.get_dataset_shard("validate")
 
         report_metrics = {
+            "rank": 0,
             "epoch": 0,
+            "token_per_second": 0.0,
+            "token_total": 0,
+            "token_process_time_ms" : 0.0,
+            "norm": 0.0,
             "train_loss": 0.0,
             "validate_loss": 0.0,
             "perplexity": 0.0,
@@ -231,20 +227,21 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             "best_perplexity": best_perplexity,
         }
 
-        text_generator = TextGenerator(model, device=device)
-        tokenizer = TikTokenizer()
-
         for epoch in range(epoch_start + 1, num_epoch_per_worker + 1):
-            
-            
             model.train()
 
+            current_rank = ray.train.get_context().get_world_rank()
+            report_metrics["rank"] = current_rank
             report_metrics["epoch"] = epoch
 
             train_loss = 0
             batch_count = 0
             t0 = time.time()
-            for batch in train_data_shard.iter_torch_batches(batch_size=batch_size_per_worker,drop_last=True,local_shuffle_buffer_size=1000,):
+            for batch in train_data_shard.iter_torch_batches(
+                batch_size=batch_size_per_worker,
+                drop_last=True,
+                local_shuffle_buffer_size=1000,
+            ):
                 batch_count += 1
                 input_ids = batch["input_ids"]
                 logits = model(input_ids)
@@ -253,31 +250,35 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
                 train_loss += loss.item()  # only for reporting
                 optimizer.zero_grad()
                 loss.backward()
+                norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
                 optimizer.step()
-                
+                scheduler.step()
+
             torch.cuda.synchronize()
-            
-            t1 = time.time()
-            dt = (t1 - t0)*1000
-            
-            token_per_second = batch_count * batch_size_per_worker * block_size / dt
-            
 
             train_loss = train_loss / batch_count
-            
-            report_metrics["time_ms"] = dt
-            report_metrics["token_per_second"] = token_per_second
-            
             report_metrics["train_loss"] = train_loss
 
-           
-            
+            t1 = time.time()
+            dt = t1 - t0
+            token_total = batch_count * batch_size_per_worker * block_size
+            token_per_second = token_total / dt
+
+            report_metrics["token_per_second"] = token_per_second
+            report_metrics["token_total"] = token_total
+            report_metrics["token_process_time_ms"] = dt * 1000
+
+            report_metrics["norm"] = norm.item()
+
             if epoch % check_frequency == 0:
                 validate_loss = 0
                 model.eval()
                 with torch.no_grad():
                     batch_count = 0
-                    for batch in validate_data_shard.iter_torch_batches(batch_size=1,drop_last=False,):
+                    for batch in validate_data_shard.iter_torch_batches(
+                        batch_size=1,
+                        drop_last=False,
+                    ):
                         batch_count += 1
                         input_ids = batch["input_ids"]
                         logits = model(input_ids)
@@ -292,15 +293,15 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
 
                 report_metrics["validate_loss"] = validate_loss
                 report_metrics["perplexity"] = perplexity
-                
+
                 if perplexity < best_perplexity:
                     best_perplexity = perplexity
                     best_epoch = epoch
 
                     report_metrics["best_epoch"] = best_epoch
                     report_metrics["best_perplexity"] = best_perplexity
-    
-                    #In standard DDP training, where the model is the same across all ranks,
+
+                    # In standard DDP training, where the model is the same across all ranks,
                     # only the global rank 0 worker needs to save and report the checkpoint
                     if ray.train.get_context().get_world_rank() == 0:
                         # create the best_checkpoint_dir if it does not exist
@@ -317,5 +318,73 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
 
             ray.train.report(metrics=report_metrics)
 
+    @staticmethod
+    def _resume_training(best_checkpoint_dir, model, optimizer):
+        if os.path.exists(best_checkpoint_dir):
+            checkpoint = ray.train.Checkpoint.from_directory(best_checkpoint_dir)
+        else:
+            checkpoint = None
+        if checkpoint:
+            best_epoch, best_perplexity = resume_checkpoint(
+                    model, optimizer, checkpoint
+                )
+            epoch_start = best_epoch
+            print(
+                    f"Resumed training from best_epoch {best_epoch},best_perplexity {best_perplexity}"
+                )
+        else:
+            print(f"Checkpoint not found, starting from epoch 0")
+        return epoch_start,best_perplexity,best_epoch
 
-            
+    @staticmethod
+    def _prepare_metric(device):
+        metric = torchmetrics.text.Perplexity().to(device)
+        return metric
+
+    @staticmethod
+    def _prepare_loss_function():
+        loss_function = torch.nn.CrossEntropyLoss()
+        return loss_function
+
+    @staticmethod
+    def _prepare_lr_scheduler(warmup_steps, max_steps, max_lr, min_lr, optimizer):
+        scheduler = GPTLRScheduler(
+            optimizer,
+            warmup_steps=warmup_steps,
+            max_steps=max_steps,
+            max_lr=max_lr,
+            min_lr=min_lr,
+        )
+        
+        return scheduler
+
+    @staticmethod
+    def _prepare_optimizer(max_lr, model):
+        optimizer = torch.optim.AdamW(
+            model.parameters(),
+            lr=max_lr,
+            betas=(0.9, 0.95),
+            eps=1e-8,
+        )
+        
+        return optimizer
+
+    @staticmethod
+    def _prepare_data():
+        train_data_shard = ray.train.get_dataset_shard("train")
+        validate_data_shard = ray.train.get_dataset_shard("validate")
+        return train_data_shard,validate_data_shard
+
+    @staticmethod
+    def _prepare_model(vocab_size, dimension_embedding, block_size, num_layers, num_headers, drop_rate, qkv_bias):
+        model = GPT(
+            vocab_size,
+            dimension_embedding,
+            block_size,
+            num_layers,
+            num_headers,
+            drop_rate,
+            qkv_bias,
+        )
+        model = ray.train.torch.prepare_model(model)
+        return model
