@@ -381,8 +381,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             {'params': decay_params, 'weight_decay': weight_decay},
             {'params': nodecay_params, 'weight_decay': 0.0}
         ]
-    
-
+        
         # Create AdamW optimizer and use the fused version if it is available
         fused_available = 'fused' in inspect.signature(torch.optim.AdamW).parameters
         use_fused = fused_available and  'cuda' in device_type
@@ -395,6 +394,8 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             eps=1e-8,
             **extra_args,
         )
+        
+        
         
         return optimizer
 
