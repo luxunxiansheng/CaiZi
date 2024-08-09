@@ -80,7 +80,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             "num_layers": self.cfg["124M"]["num_layers"],
             "num_headers": self.cfg["124M"]["num_headers"],
             "drop_rate": self.cfg["124M"]["drop_rate"],
-            "qkv_bias": self.cfg["124M"]["qkv_bias"],
+            "bias": self.cfg["124M"]["bias"],
             "check_frequency": self.cfg["ray_train"]["check_frequency"],
             "batch_size_per_worker": self.cfg["ray_train"]["batch_size_per_worker"],
             "num_epoch_per_worker": self.cfg["ray_train"]["num_epoch_per_worker"],
@@ -173,7 +173,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         num_layers = cfg["num_layers"]
         num_headers = cfg["num_headers"]
         drop_rate = cfg["drop_rate"]
-        qkv_bias = cfg["qkv_bias"]
+        bias = cfg["bias"]
         check_frequency = cfg["check_frequency"]
         batch_size_per_worker = cfg["batch_size_per_worker"]
         num_epoch_per_worker = cfg["num_epoch_per_worker"]
@@ -194,7 +194,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         train_data_shard, validate_data_shard = RayGPT2FundationModelTrainer._prepare_data()
 
         # GPT model
-        model = RayGPT2FundationModelTrainer._prepare_model(vocab_size, dimension_embedding, block_size, num_layers, num_headers, drop_rate, qkv_bias)
+        model = RayGPT2FundationModelTrainer._prepare_model(vocab_size, dimension_embedding, block_size, num_layers, num_headers, drop_rate, bias)
 
         # optimizer
         optimizer = RayGPT2FundationModelTrainer._prepare_optimizer(weight_decay,max_lr, model)
@@ -412,7 +412,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         return train_data_shard,validate_data_shard
 
     @staticmethod
-    def _prepare_model(vocab_size, dimension_embedding, block_size, num_layers, num_headers, drop_rate, qkv_bias):
+    def _prepare_model(vocab_size, dimension_embedding, block_size, num_layers, num_headers, drop_rate, bias):
         model = GPT(
             vocab_size,
             dimension_embedding,
@@ -420,7 +420,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             num_layers,
             num_headers,
             drop_rate,
-            qkv_bias,
+            bias,
         )
         model = torch.compile(model)
         model = ray.train.torch.prepare_model(model)

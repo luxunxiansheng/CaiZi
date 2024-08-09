@@ -12,17 +12,15 @@ from config import gpt2_cfg as cfg
 from token_processor import TikTokenizer
 from  text_generator import TextGenerator
 from utility import (
-    load_weights_into_gpt,
+    load_hf_weights_into_gpt,
     save_checkpoint,
     resume_checkpoint,
-    download_gpt2_model,
-    load_gpt2_params,
 )
 
 from model.GPT import GPT
 import unittest
-from unittest.mock import patch
-from utility import load_gpt2_params
+
+
 
 #@unittest.skip("skip")
 class RayClassTest(unittest.TestCase):
@@ -45,7 +43,7 @@ class RayClassTest(unittest.TestCase):
         num_header = 12
         n_layers = 12
         drop_rate = 0.1
-        qkv_bias = False
+        bias = False
 
         model = GPT(
             vocab_size,
@@ -54,7 +52,7 @@ class RayClassTest(unittest.TestCase):
             n_layers,
             num_header,
             drop_rate,
-            qkv_bias,
+            bias,
         )
         optimizer = torch.optim.AdamW(model.parameters(), lr=0.0004, weight_decay=0.1)
 
@@ -76,7 +74,7 @@ class RayClassTest(unittest.TestCase):
         num_header = 12
         n_layers = 12
         drop_rate = 0.1
-        qkv_bias = False
+        bias = False
 
         model = GPT(
             vocab_size,
@@ -85,7 +83,7 @@ class RayClassTest(unittest.TestCase):
             n_layers,
             num_header,
             drop_rate,
-            qkv_bias,
+            bias,
         )
         optimizer = torch.optim.AdamW(model.parameters(), lr=0.0004, weight_decay=0.1)
 
@@ -103,7 +101,7 @@ class RayClassTest(unittest.TestCase):
             num_header = 12
             n_layers = 12
             drop_rate = 0.1
-            qkv_bias = False
+            bias = False
 
             model = GPT(
                 vocab_size,
@@ -112,7 +110,7 @@ class RayClassTest(unittest.TestCase):
                 n_layers,
                 num_header,
                 drop_rate,
-                qkv_bias,
+                bias,
             )
             optimizer = torch.optim.AdamW(
                 model.parameters(), lr=0.0004, weight_decay=0.1
@@ -129,13 +127,6 @@ class UtilityTest(unittest.TestCase):
         self.model_size = "124M"
         self.model_dir =  cfg["124M"]["openai_gpt_dir"] +"/"+self.model_size
 
-    @unittest.skip("skip")
-    def test_download_and_load_gpt2_settings(self):
-
-        download_gpt2_model(self.model_size, self.model_dir)
-
-        param = load_gpt2_params(self.model_dir)
-        print(param)
 
     #@unittest.skip("skip")
     def test_load_weights_to_gpt(self):
@@ -149,7 +140,7 @@ class UtilityTest(unittest.TestCase):
         num_header = 12
         n_layers = 12
         drop_rate = 0.1
-        qkv_bias = True
+        bias = True
 
         model = GPT(
             vocab_size,
@@ -158,12 +149,12 @@ class UtilityTest(unittest.TestCase):
             n_layers,
             num_header,
             drop_rate,
-            qkv_bias,
+            bias,
         )
-
-        param = load_gpt2_params(self.model_dir)
         
-        load_weights_into_gpt(model, param)
+        print("model:", model)
+
+        load_hf_weights_into_gpt(model, "gpt2")
         
 
         torch.manual_seed(123)
@@ -178,13 +169,7 @@ class UtilityTest(unittest.TestCase):
                                  top_k=50,)
         print("decoded:", decoded)
      
-    #@unittest.skip("skip")
-    def test_load_gpt2_params(self):
 
-        params = load_gpt2_params(self.model_dir)
-        
-        # assert the values of the parameters are correctly loaded from openAI GPT2 model
-        print(len(params))
        
         
         

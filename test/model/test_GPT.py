@@ -25,9 +25,9 @@ class TestGPT(unittest.TestCase):
         num_header = 12
         n_layers = 12
         drop_rate = 0.1
-        qkv_bias = False
+        bias = False
 
-        model = GPT(vocab_size, dimension_embedding, block_size,n_layers, num_header, drop_rate, qkv_bias)
+        model = GPT(vocab_size, dimension_embedding, block_size,n_layers, num_header, drop_rate, bias)
         
         print(model)
         
