@@ -185,6 +185,8 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         
         rank = ray.train.get_context().get_world_rank()
         device = torch.device(f"cuda:{rank}" if torch.cuda.is_available() else "cpu")
+        
+        torch.set_float32_matmul_precision("high")
   
         # data
         train_data_shard, validate_data_shard = RayGPT2FundationModelTrainer._prepare_data()
