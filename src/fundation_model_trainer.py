@@ -15,7 +15,6 @@ from pathlib import Path
 
 import time
 
-
 import ray.train
 import ray.train.torch
 import torch
@@ -246,9 +245,12 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             ):
                 batch_count += 1
                 input_ids = batch["input_ids"]
-                logits = model(input_ids)
-                target_ids = batch["target_ids"]
-                loss = loss_function(logits.flatten(0, 1), target_ids.flatten())
+                
+                # https://pytorch.org/tutorials/recipes/recipes/amp_recipe.html
+                with torch.autocast(device_type=input_ids.device.type,dtype=torch.bfloat16):
+                    logits = model(input_ids)
+                    target_ids = batch["target_ids"]
+                    loss = loss_function(logits.flatten(0, 1), target_ids.flatten())
                 train_loss += loss.item()  # only for reporting
                 optimizer.zero_grad()
                 loss.backward()
