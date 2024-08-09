@@ -55,7 +55,8 @@ ray_train:
 
   resume_training: False
   best_checkpoint_dir: ${model_weights_dir}/best_checkpoint
-
+  
+  weight_decay: 0.1
   warmup_steps: 10
   max_steps: 40
   max_lr: 6e-4

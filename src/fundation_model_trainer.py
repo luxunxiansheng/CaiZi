@@ -11,6 +11,7 @@
 
 import os
 from abc import ABC, abstractmethod
+import inspect
 from pathlib import Path
 
 import time
@@ -90,6 +91,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             "max_steps": self.cfg["ray_train"]["max_steps"],
             "max_lr": self.cfg["ray_train"]["max_lr"],
             "min_lr": self.cfg["ray_train"]["min_lr"],
+            "weight_decay": self.cfg["ray_train"]["weight_decay"],
         }
 
         dataset = self.cfg["dataset"]
@@ -181,6 +183,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         max_steps = cfg["max_steps"]
         max_lr = cfg["max_lr"]
         min_lr = cfg["min_lr"]
+        weight_decay = cfg["weight_decay"]
         
         rank = ray.train.get_context().get_world_rank()
         device = torch.device(f"cuda:{rank}" if torch.cuda.is_available() else "cpu")
@@ -194,7 +197,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         model = RayGPT2FundationModelTrainer._prepare_model(vocab_size, dimension_embedding, block_size, num_layers, num_headers, drop_rate, qkv_bias)
 
         # optimizer
-        optimizer = RayGPT2FundationModelTrainer._prepare_optimizer(max_lr, model)
+        optimizer = RayGPT2FundationModelTrainer._prepare_optimizer(weight_decay,max_lr, model)
 
         # lr scheduler
         scheduler = RayGPT2FundationModelTrainer._prepare_lr_scheduler(warmup_steps, max_steps, max_lr, min_lr, optimizer)
@@ -363,12 +366,34 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         return scheduler
 
     @staticmethod
-    def _prepare_optimizer(max_lr, model):
+    def _prepare_optimizer(weight_decay,max_lr, model):
+        device_type = model.device.type
+        
+        # start with all of the candidate parameters
+        param_dict = {pn: p for pn, p in model.named_parameters()}
+        # filter out those that do not require grad
+        param_dict = {pn: p for pn, p in param_dict.items() if p.requires_grad}
+        # create optim groups. Any parameters that is 2D will be weight decayed, otherwise no.
+        # i.e. all weight tensors in matmuls + embeddings decay, all biases and layernorms don't.
+        decay_params = [p for n, p in param_dict.items() if p.dim() >= 2]
+        nodecay_params = [p for n, p in param_dict.items() if p.dim() < 2]
+        optim_groups = [
+            {'params': decay_params, 'weight_decay': weight_decay},
+            {'params': nodecay_params, 'weight_decay': 0.0}
+        ]
+    
+
+        # Create AdamW optimizer and use the fused version if it is available
+        fused_available = 'fused' in inspect.signature(torch.optim.AdamW).parameters
+        use_fused = fused_available and  'cuda' in device_type
+        extra_args = dict(fused=True) if use_fused else dict()
+        
         optimizer = torch.optim.AdamW(
-            model.parameters(),
+            optim_groups,
             lr=max_lr,
             betas=(0.9, 0.95),
             eps=1e-8,
+            **extra_args,
         )
         
         return optimizer
