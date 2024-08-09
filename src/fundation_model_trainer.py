@@ -390,5 +390,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             drop_rate,
             qkv_bias,
         )
+        model = torch.compile(model)
         model = ray.train.torch.prepare_model(model)
+        
         return model
