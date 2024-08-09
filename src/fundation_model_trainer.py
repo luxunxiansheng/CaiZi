@@ -288,9 +288,12 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
                     ):
                         batch_count += 1
                         input_ids = batch["input_ids"]
-                        logits = model(input_ids)
-                        target_ids = batch["target_ids"]
-                        loss = loss_function(logits.flatten(0, 1), target_ids.flatten())
+                        
+                        with torch.autocast(device_type=input_ids.device.type,dtype=torch.bfloat16):
+                            logits = model(input_ids)
+                            target_ids = batch["target_ids"]
+                            loss = loss_function(logits.flatten(0, 1), target_ids.flatten())
+                            
                         validate_loss += loss.item()  # only for reporting
                         metric.update(logits, target_ids)
 
@@ -382,6 +385,11 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             {'params': nodecay_params, 'weight_decay': 0.0}
         ]
         
+        num_decay_params = sum(p.numel() for p in decay_params)
+        num_nodecay_params = sum(p.numel() for p in nodecay_params)
+        print(f"num decayed parameter tensors: {len(decay_params)}, with {num_decay_params:,} parameters")
+        print(f"num non-decayed parameter tensors: {len(nodecay_params)}, with {num_nodecay_params:,} parameters")
+        
         # Create AdamW optimizer and use the fused version if it is available
         fused_available = 'fused' in inspect.signature(torch.optim.AdamW).parameters
         use_fused = fused_available and  'cuda' in device_type
@@ -394,8 +402,6 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             eps=1e-8,
             **extra_args,
         )
-        
-        
         
         return optimizer
 

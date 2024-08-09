@@ -14,6 +14,7 @@ class TestGPT2FundationModelTrainer(unittest.TestCase):
     def test_train(self):
         self.trainer.self_supervised_train()
 
+    
 
 
 if __name__ == "__main__":

@@ -38,8 +38,8 @@ class TransformerBlock(nn.Module):
             qkv_bias,
         )
         self.mlp = MLP(dimension_embedding)
-        self.layernorm_1 = LayerNorm(dimension_embedding)
-        self.layernorm_2 = LayerNorm(dimension_embedding)
+        self.layernorm_1 = LayerNorm(dimension_embedding, qkv_bias)
+        self.layernorm_2 = LayerNorm(dimension_embedding,qkv_bias)
         self.drop_shortcut = nn.Dropout(drop_rate)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:

@@ -27,7 +27,7 @@ class GPT(nn.Module):
         self.transformer_blocks = nn.Sequential(
             *[TransformerBlock(dimension_embedding, dimension_embedding, block_size, num_header, drop_rate, qkv_bias) for _ in range(n_layers)])
         
-        self.final_layernorm = LayerNorm(dimension_embedding)
+        self.final_layernorm = LayerNorm(dimension_embedding, qkv_bias)
         self.out_head = nn.Linear(
             dimension_embedding, vocab_size, bias=False
         )

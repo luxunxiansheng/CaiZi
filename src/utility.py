@@ -255,23 +255,23 @@ def load_weights_into_gpt(gpt: GPT, params: dict) -> None:
             params["blocks"][index]["mlp"]["c_proj"]["b"],
         )
 
-        gpt.transformer_blocks[index].layernorm_1.scale = assign(
-            gpt.transformer_blocks[index].layernorm_1.scale,
+        gpt.transformer_blocks[index].layernorm_1.weight = assign(
+            gpt.transformer_blocks[index].layernorm_1.weight,
             params["blocks"][index]["ln_1"]["g"],
         )
-        gpt.transformer_blocks[index].layernorm_1.shift = assign(
-            gpt.transformer_blocks[index].layernorm_1.shift,
+        gpt.transformer_blocks[index].layernorm_1.bias = assign(
+            gpt.transformer_blocks[index].layernorm_1.bias,
             params["blocks"][index]["ln_1"]["b"],
         )
-        gpt.transformer_blocks[index].layernorm_2.scale = assign(
-            gpt.transformer_blocks[index].layernorm_2.scale,
+        gpt.transformer_blocks[index].layernorm_2.weight = assign(
+            gpt.transformer_blocks[index].layernorm_2.weight,
             params["blocks"][index]["ln_2"]["g"],
         )
-        gpt.transformer_blocks[index].layernorm_2.shift = assign(
-            gpt.transformer_blocks[index].layernorm_2.shift,
+        gpt.transformer_blocks[index].layernorm_2.bias = assign(
+            gpt.transformer_blocks[index].layernorm_2.bias,
             params["blocks"][index]["ln_2"]["b"],
         )
 
-    gpt.final_layernorm.scale = assign(gpt.final_layernorm.scale, params["g"])
-    gpt.final_layernorm.shift = assign(gpt.final_layernorm.shift, params["b"])
+    gpt.final_layernorm.weight = assign(gpt.final_layernorm.weight, params["g"])
+    gpt.final_layernorm.bias = assign(gpt.final_layernorm.bias, params["b"])
     gpt.out_head.weight = assign(gpt.out_head.weight, params["wte"])
