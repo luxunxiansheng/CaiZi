@@ -168,27 +168,6 @@ class UtilityTest(unittest.TestCase):
                                  temperature=1.5,
                                  top_k=50,)
         print("decoded:", decoded)
-     
-
-       
-        
-        
-
-    
-        
-        
-        
-
-
-        
-        
-        
-        
-        
-
-
-       
-
 
 if __name__ == "__main__":
     unittest.main()

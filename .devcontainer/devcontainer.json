@@ -2,13 +2,20 @@
   "name": "CaiZi",
   "build": {
     "context": "..",
-    "dockerfile": "Dockerfile"
+    "dockerfile": "Dockerfile",
+    "args": {
+      "http_proxy": "172.17.0.1:7890",
+      "https_proxy": "172.17.0.1:7890",
+      "no_proxy": "localhost"
+    }
   },
-
-  "runArgs": ["--runtime=nvidia", 
-              "--gpus=all",
-              "--shm-size=8.30gb",
-              "--cap-add=SYS_PTRACE",],
+  "runArgs": [
+    "--runtime=nvidia",
+    "--gpus=all",
+    "--shm-size=8.30gb",
+    "--cap-add=SYS_PTRACE",
+    "-p=7890:7890"
+  ],
   "customizations": {
     "vscode": {
       "extensions": [
@@ -49,11 +56,5 @@
   "features": {
     "ghcr.io/devcontainers-contrib/features/prometheus:1": {},
     "ghcr.io/schlich/devcontainer-features/grafana:1": {},
-  },
-
-
-
-  
-  
-  
+  }
 }
