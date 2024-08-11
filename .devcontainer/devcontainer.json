@@ -4,9 +4,9 @@
     "context": "..",
     "dockerfile": "Dockerfile",
     "args": {
-      "http_proxy": "172.17.0.1:7890",
-      "https_proxy": "172.17.0.1:7890",
-      "no_proxy": "localhost"
+      "http_proxy": "${localEnv:http_proxy}",
+      "https_proxy": "${localEnv:https_proxy}",
+      "no_proxy": "${localEnv:no_proxy}"
     }
   },
   "runArgs": [
@@ -14,7 +14,7 @@
     "--gpus=all",
     "--shm-size=8.30gb",
     "--cap-add=SYS_PTRACE",
-    "-p=7890:7890"
+
   ],
   "customizations": {
     "vscode": {
@@ -56,5 +56,6 @@
   "features": {
     "ghcr.io/devcontainers-contrib/features/prometheus:1": {},
     "ghcr.io/schlich/devcontainer-features/grafana:1": {},
+    "ghcr.io/balazs23/devcontainers-features/bazel:1": {},
   }
 }

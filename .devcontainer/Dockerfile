@@ -7,9 +7,7 @@ RUN apt-get update && \
     apt-get install wget -y && \
     rm -rf /var/lib/apt/lists/*
 
-RUN wget https://github.com/bazelbuild/bazelisk/releases/download/v1.20.0/bazelisk-linux-amd64  -O bazelisk && \
-    chmod +x bazelisk && \
-    mv bazelisk /usr/local/bin/bazel    
+
 
 RUN pip install pip-tools    
 
