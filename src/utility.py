@@ -108,7 +108,7 @@ def load_hf_weights_into_gpt(gpt: GPT, model_type: str) -> None:
 
 
     # init a huggingface/transformers model
-    model_hf = GPT2LMHeadModel.from_pretrained(model_type,force_download=True)
+    model_hf = GPT2LMHeadModel.from_pretrained(model_type)
     d = model_hf.state_dict()
 
     gpt.transformer.position_embedding.weight = assign_check(

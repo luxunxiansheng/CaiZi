@@ -9,12 +9,19 @@
       "no_proxy": "${localEnv:no_proxy}"
     }
   },
+  "containerEnv": {
+    "HTTP_PROXY": "${localEnv:HTTP_PROXY}",
+    "HTTPS_PROXY": "${localEnv:HTTPS_PROXY}",
+    "http_proxy": "${localEnv:http_proxy}",
+    "https_proxy": "${localEnv:https_proxy}",
+    "no_proxy": "localhost,127.0.0.1,192.168.0.0/24,git.raysightmed.com" // Adjusted with your no_proxy list
+  },
+
   "runArgs": [
     "--runtime=nvidia",
     "--gpus=all",
     "--shm-size=8.30gb",
     "--cap-add=SYS_PTRACE",
-
   ],
   "customizations": {
     "vscode": {
@@ -54,8 +61,9 @@
     }
   },
   "features": {
-    "ghcr.io/devcontainers-contrib/features/prometheus:1": {},
-    "ghcr.io/schlich/devcontainer-features/grafana:1": {},
-    "ghcr.io/balazs23/devcontainers-features/bazel:1": {},
+    "ghcr.io/balazs23/devcontainers-features/bazel:1": {
+      "bazelisk": "v1.15.0"
+    },
+    "ghcr.io/devcontainers-contrib/features/prometheus:1.0.2": {}
   }
 }
