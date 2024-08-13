@@ -3,6 +3,7 @@ FROM pytorch/pytorch:2.3.1-cuda12.1-cudnn8-runtime
 
 RUN sed -i 's|http://archive.ubuntu.com/ubuntu/|https://mirrors.tuna.tsinghua.edu.cn/ubuntu/|g' /etc/apt/sources.list && \
     apt-get update && \
+    apt-get install -y screen && \
     apt-get install -y sudo && \
     apt-get install -y adduser libfontconfig1 musl  && \
     apt-get install -y --no-install-recommends git && \
@@ -15,7 +16,7 @@ RUN wget https://dl.grafana.com/enterprise/release/grafana-enterprise_11.1.3_amd
     dpkg -i grafana-enterprise_11.1.3_amd64.deb &&\
     rm grafana-enterprise_11.1.3_amd64.deb
 
-RUN pip install pip-tools    
+RUN pip install --index-url https://pypi.tuna.tsinghua.edu.cn/simple  pip-tools    
 
 
 COPY requirements.in .

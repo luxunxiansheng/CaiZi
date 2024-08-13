@@ -16,6 +16,7 @@ from pathlib import Path
 
 import time
 
+from numpy import gradient
 import ray.train
 import ray.train.torch
 import torch
@@ -92,6 +93,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             "max_lr": self.cfg["ray_train"]["max_lr"],
             "min_lr": self.cfg["ray_train"]["min_lr"],
             "weight_decay": self.cfg["ray_train"]["weight_decay"],
+            "total_batch_size": self.cfg["ray_train"]["total_batch_size"],
         }
 
         dataset = self.cfg["dataset"]
@@ -158,7 +160,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
                 ],
             },
             ignore_reinit_error=True,
-            _metrics_export_port = 8080,
+            _metrics_export_port=8080,
         )
 
         # convience for debugging
@@ -184,45 +186,63 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         max_lr = cfg["max_lr"]
         min_lr = cfg["min_lr"]
         weight_decay = cfg["weight_decay"]
-        
+        total_tokens_per_batch = cfg["total_batch_size"]
+
         rank = ray.train.get_context().get_world_rank()
         device = torch.device(f"cuda:{rank}" if torch.cuda.is_available() else "cpu")
-        
+
         torch.set_float32_matmul_precision("high")
-  
+
         # data
-        train_data_shard, validate_data_shard = RayGPT2FundationModelTrainer._prepare_data()
+        train_data_shard, validate_data_shard = (
+            RayGPT2FundationModelTrainer._prepare_data()
+        )
 
         # GPT model
-        model = RayGPT2FundationModelTrainer._prepare_model(vocab_size, dimension_embedding, block_size, num_layers, num_headers, drop_rate, bias)
+        model = RayGPT2FundationModelTrainer._prepare_model(
+            vocab_size,
+            dimension_embedding,
+            block_size,
+            num_layers,
+            num_headers,
+            drop_rate,
+            bias,
+        )
 
         # optimizer
-        optimizer = RayGPT2FundationModelTrainer._prepare_optimizer(weight_decay,max_lr, model)
+        optimizer = RayGPT2FundationModelTrainer._prepare_optimizer(
+            weight_decay, max_lr, model
+        )
 
         # lr scheduler
-        scheduler = RayGPT2FundationModelTrainer._prepare_lr_scheduler(warmup_steps, max_steps, max_lr, min_lr, optimizer)
-       
+        scheduler = RayGPT2FundationModelTrainer._prepare_lr_scheduler(
+            warmup_steps, max_steps, max_lr, min_lr, optimizer
+        )
+
         # loss function
         loss_function = RayGPT2FundationModelTrainer._prepare_loss_function()
-        
+
         # metrics
         metric = RayGPT2FundationModelTrainer._prepare_metric(device)
- 
+
         # ====== Resume training state from the checkpoint. ======
         epoch_start = 0
         best_perplexity = float("inf")
         best_epoch = 0
 
         if resume_training:
-            epoch_start, best_perplexity, best_epoch = RayGPT2FundationModelTrainer._resume_training(best_checkpoint_dir, model, optimizer)
-
+            epoch_start, best_perplexity, best_epoch = (
+                RayGPT2FundationModelTrainer._resume_training(
+                    best_checkpoint_dir, model, optimizer
+                )
+            )
 
         report_metrics = {
             "rank": 0,
             "epoch": 0,
             "token_per_second": 0.0,
             "token_total": 0,
-            "token_process_time_ms" : 0.0,
+            "token_process_time_ms": 0.0,
             "norm": 0.0,
             "train_loss": 0.0,
             "validate_loss": 0.0,
@@ -231,6 +251,19 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             "best_perplexity": best_perplexity,
         }
 
+        assert (
+            total_tokens_per_batch % (batch_size_per_worker * block_size) == 0
+        ), "total_batch_size must be divisible by batch_size_per_worker*block_size"
+        
+        logical_batch_size_per_worker = total_tokens_per_batch // block_size  # logical batch size
+        
+        gradient_accumulation_steps = logical_batch_size_per_worker //batch_size_per_worker  
+        
+        print(f"total_batch_size: {total_tokens_per_batch}")
+        print(f"gradient_accumulation_steps: {gradient_accumulation_steps}")
+        
+        token_processed = 0
+        
         for epoch in range(epoch_start + 1, num_epoch_per_worker + 1):
             model.train()
 
@@ -238,41 +271,52 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             report_metrics["rank"] = current_rank
             report_metrics["epoch"] = epoch
 
-            train_loss = 0
-            batch_count = 0
+            logical_train_loss = 0
+            logical_batch_count = 0
             t0 = time.time()
-            for batch in train_data_shard.iter_torch_batches(
-                batch_size=batch_size_per_worker,
+            
+            for logical_batch in train_data_shard.iter_torch_batches(
+                batch_size=logical_batch_size_per_worker,
                 drop_last=True,
                 local_shuffle_buffer_size=1000,
             ):
-                batch_count += 1
-                input_ids = batch["input_ids"]
+                logical_batch_count += 1
+                logical_input_ids = logical_batch["input_ids"]
+                logical_target_ids = logical_batch["target_ids"]
                 
-                # https://pytorch.org/tutorials/recipes/recipes/amp_recipe.html
-                with torch.autocast(device_type=input_ids.device.type,dtype=torch.bfloat16):
-                    logits = model(input_ids)
-                    target_ids = batch["target_ids"]
-                    loss = loss_function(logits.flatten(0, 1), target_ids.flatten())
-                train_loss += loss.item()  # only for reporting
                 optimizer.zero_grad()
-                loss.backward()
+                for step in range(gradient_accumulation_steps):
+                    physical_input_ids_in_current_step = logical_input_ids[step:step+batch_size_per_worker]
+                    physical_target_ids_in_current_step = logical_target_ids[step:step+batch_size_per_worker]
+                    
+                    # https://pytorch.org/tutorials/recipes/recipes/amp_recipe.html
+                    with torch.autocast(device_type=physical_input_ids_in_current_step.device.type, dtype=torch.bfloat16):
+                        logits = model(physical_input_ids_in_current_step)                    
+                        physical_loss = loss_function(logits.flatten(0, 1), physical_target_ids_in_current_step.flatten())
+                    physical_loss = physical_loss / gradient_accumulation_steps # normalize the loss to account for the gradient accumulation
+                    physical_loss.backward()
+                    
+                    logical_train_loss += physical_loss.detach().item() #  for reporting
+                    
+                    token_processed += batch_size_per_worker * block_size*step # for reporting
+                
                 norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
                 optimizer.step()
                 scheduler.step()
+                
 
             torch.cuda.synchronize()
 
-            train_loss = train_loss / batch_count
-            report_metrics["train_loss"] = train_loss
+            logical_train_loss = logical_train_loss / logical_batch_count
+            report_metrics["logical_train_loss"] = logical_train_loss
 
             t1 = time.time()
             dt = t1 - t0
-            token_total = batch_count * batch_size_per_worker * block_size
-            token_per_second = token_total / dt
+            
+            token_per_second = token_processed / dt
 
             report_metrics["token_per_second"] = token_per_second
-            report_metrics["token_total"] = token_total
+            report_metrics["token_total"] = token_processed
             report_metrics["token_process_time_ms"] = dt * 1000
 
             report_metrics["norm"] = norm.item()
@@ -281,23 +325,28 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
                 validate_loss = 0
                 model.eval()
                 with torch.no_grad():
-                    batch_count = 0
+                    evalute_batch_count = 0
                     for batch in validate_data_shard.iter_torch_batches(
                         batch_size=1,
                         drop_last=False,
                     ):
-                        batch_count += 1
+                        evalute_batch_count += 1
                         input_ids = batch["input_ids"]
-                        
-                        with torch.autocast(device_type=input_ids.device.type,dtype=torch.bfloat16):
+                        target_ids = batch["target_ids"]
+
+                        with torch.autocast(
+                            device_type=input_ids.device.type, dtype=torch.bfloat16
+                        ):
                             logits = model(input_ids)
-                            target_ids = batch["target_ids"]
-                            loss = loss_function(logits.flatten(0, 1), target_ids.flatten())
                             
+                            loss = loss_function(
+                                logits.flatten(0, 1), target_ids.flatten()
+                            )
+
                         validate_loss += loss.item()  # only for reporting
                         metric.update(logits, target_ids)
 
-                validate_loss = validate_loss / batch_count
+                validate_loss = validate_loss / evalute_batch_count
                 perplexity = metric.compute().item()
                 metric.reset()
 
@@ -336,15 +385,15 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             checkpoint = None
         if checkpoint:
             best_epoch, best_perplexity = resume_checkpoint(
-                    model, optimizer, checkpoint
-                )
+                model, optimizer, checkpoint
+            )
             epoch_start = best_epoch
             print(
-                    f"Resumed training from best_epoch {best_epoch},best_perplexity {best_perplexity}"
-                )
+                f"Resumed training from best_epoch {best_epoch},best_perplexity {best_perplexity}"
+            )
         else:
             print(f"Checkpoint not found, starting from epoch 0")
-        return epoch_start,best_perplexity,best_epoch
+        return epoch_start, best_perplexity, best_epoch
 
     @staticmethod
     def _prepare_metric(device):
@@ -365,13 +414,13 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             max_lr=max_lr,
             min_lr=min_lr,
         )
-        
+
         return scheduler
 
     @staticmethod
-    def _prepare_optimizer(weight_decay,max_lr, model):
+    def _prepare_optimizer(weight_decay, max_lr, model):
         device_type = model.device.type
-        
+
         # start with all of the candidate parameters
         param_dict = {pn: p for pn, p in model.named_parameters()}
         # filter out those that do not require grad
@@ -381,20 +430,24 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         decay_params = [p for n, p in param_dict.items() if p.dim() >= 2]
         nodecay_params = [p for n, p in param_dict.items() if p.dim() < 2]
         optim_groups = [
-            {'params': decay_params, 'weight_decay': weight_decay},
-            {'params': nodecay_params, 'weight_decay': 0.0}
+            {"params": decay_params, "weight_decay": weight_decay},
+            {"params": nodecay_params, "weight_decay": 0.0},
         ]
-        
+
         num_decay_params = sum(p.numel() for p in decay_params)
         num_nodecay_params = sum(p.numel() for p in nodecay_params)
-        print(f"num decayed parameter tensors: {len(decay_params)}, with {num_decay_params:,} parameters")
-        print(f"num non-decayed parameter tensors: {len(nodecay_params)}, with {num_nodecay_params:,} parameters")
-        
+        print(
+            f"num decayed parameter tensors: {len(decay_params)}, with {num_decay_params:,} parameters"
+        )
+        print(
+            f"num non-decayed parameter tensors: {len(nodecay_params)}, with {num_nodecay_params:,} parameters"
+        )
+
         # Create AdamW optimizer and use the fused version if it is available
-        fused_available = 'fused' in inspect.signature(torch.optim.AdamW).parameters
-        use_fused = fused_available and  'cuda' in device_type
+        fused_available = "fused" in inspect.signature(torch.optim.AdamW).parameters
+        use_fused = fused_available and "cuda" in device_type
         extra_args = dict(fused=True) if use_fused else dict()
-        
+
         optimizer = torch.optim.AdamW(
             optim_groups,
             lr=max_lr,
@@ -402,17 +455,25 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             eps=1e-8,
             **extra_args,
         )
-        
+
         return optimizer
 
     @staticmethod
     def _prepare_data():
         train_data_shard = ray.train.get_dataset_shard("train")
         validate_data_shard = ray.train.get_dataset_shard("validate")
-        return train_data_shard,validate_data_shard
+        return train_data_shard, validate_data_shard
 
     @staticmethod
-    def _prepare_model(vocab_size, dimension_embedding, block_size, num_layers, num_headers, drop_rate, bias):
+    def _prepare_model(
+        vocab_size,
+        dimension_embedding,
+        block_size,
+        num_layers,
+        num_headers,
+        drop_rate,
+        bias,
+    ):
         model = GPT(
             vocab_size,
             dimension_embedding,
@@ -424,5 +485,5 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         )
         model = torch.compile(model)
         model = ray.train.torch.prepare_model(model)
-        
+
         return model

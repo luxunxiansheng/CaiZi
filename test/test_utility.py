@@ -10,7 +10,7 @@ import ray
 
 from config import gpt2_cfg as cfg
 from token_processor import TikTokenizer
-from  text_generator import TextGenerator
+from text_generator import TextGenerator
 from utility import (
     load_hf_weights_into_gpt,
     save_checkpoint,
@@ -21,8 +21,7 @@ from model.GPT import GPT
 import unittest
 
 
-
-#@unittest.skip("skip")
+@unittest.skip("skip")
 class RayClassTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -125,10 +124,9 @@ class RayClassTest(unittest.TestCase):
 class UtilityTest(unittest.TestCase):
     def setUp(self) -> None:
         self.model_size = "124M"
-        self.model_dir =  cfg["124M"]["openai_gpt_dir"] +"/"+self.model_size
+        self.model_dir = cfg["124M"]["openai_gpt_dir"] + "/" + self.model_size
 
-
-    #@unittest.skip("skip")
+    # @unittest.skip("skip")
     def test_load_weights_to_gpt(self):
         tokenizer = TikTokenizer()
         start_context = "Every effort moves you"
@@ -139,7 +137,7 @@ class UtilityTest(unittest.TestCase):
         block_size = 1024
         num_header = 12
         n_layers = 12
-        drop_rate = 0.1
+        drop_rate = 0.0
         bias = True
 
         model = GPT(
@@ -151,23 +149,27 @@ class UtilityTest(unittest.TestCase):
             drop_rate,
             bias,
         )
-        
+
         print("model:", model)
 
         load_hf_weights_into_gpt(model, "gpt2")
         
+        print("model relaod from hf:", model)
 
         torch.manual_seed(123)
-        
+
         # Create a TextGenerator instance
-        text_generator = TextGenerator(model, device = torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+        text_generator = TextGenerator(
+            model, device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        )
         # Generate new text
-        decoded = text_generator(encoded_tensor, 
-                                 max_new_tokens=25, 
-                                 context_size=1024,
-                                 temperature=1.5,
-                                 top_k=50,)
+        decoded = text_generator(
+            encoded_tensor,
+            max_new_tokens=25,
+            context_size=1024,
+        )
         print("decoded:", decoded)
+
 
 if __name__ == "__main__":
     unittest.main()

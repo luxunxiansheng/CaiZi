@@ -44,6 +44,7 @@ ray_train:
   num_cpus_per_worker: 1
 
   check_frequency: 1
+  total_tokens_per_batch: 524288   # 2^19,~0.5M, in number of tokens
   batch_size_per_worker: 8
   num_epoch_per_worker: 80
 

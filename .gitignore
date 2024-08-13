@@ -9,6 +9,7 @@ __bazel-*
 __pycache__/ 
 *.pyc
 
+core.*
 
 outputs/
 

@@ -97,21 +97,18 @@ class GPT(nn.Module):
 
         position = torch.arange(
             0, block_size, dtype=torch.long, device=device
-        )  # shape (t)
+        )  # shape (block_size)
 
         # forward the GPT model itself
         token_embedding = self.transformer.token_embedding(
             idx
-        )  # token embeddings of shape (b, t, n_embd)
+        )  # token embeddings of shape (batch_size, block_size, embedding_size)
         position_embedding = self.transformer.position_embedding(
             position
-        )  # position embeddings of shape (t, n_embd)
+        )  # position embeddings of shape (block_size, embedding_size)
         x = self.transformer.drop(token_embedding + position_embedding)
         for transformer_block in self.transformer.transformer_blocks:
             x = transformer_block(x)
         x = self.transformer.final_layernorm(x)
-        logits = self.out_head(
-            x[:, [-1], :]
-        )  # note: using list [-1] to preserve the time dim
-
+        logits = self.out_head(x)  
         return logits

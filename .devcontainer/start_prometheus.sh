@@ -1,0 +1,1 @@
+screen -r -d -m prometheus --config.file=prometheus.yml

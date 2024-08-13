@@ -112,80 +112,80 @@ def load_hf_weights_into_gpt(gpt: GPT, model_type: str) -> None:
     d = model_hf.state_dict()
 
     gpt.transformer.position_embedding.weight = assign_check(
-        gpt.transformer.position_embedding.weight, d["wpe.weight"]
+        gpt.transformer.position_embedding.weight, d["transformer.wpe.weight"]
     )
     gpt.transformer.token_embedding.weight = assign_check(
-        gpt.transformer.token_embedding.weight, d["wte.weight"]
+        gpt.transformer.token_embedding.weight, d["transformer.wte.weight"]
     )
 
-    for tb_index in range(config["n_layers"]):
+    for tb_index in range(config["n_layer"]):
         gpt.transformer.transformer_blocks[tb_index].attention.attention.weight = (
             assign_check(
                 gpt.transformer.transformer_blocks[tb_index].attention.attention.weight,
-                d[f"h.{tb_index}.attn.c_attn.weight"].T,
+                d[f"transformer.h.{tb_index}.attn.c_attn.weight"].T,
             )
         )
         gpt.transformer.transformer_blocks[tb_index].attention.attention.bias = (
             assign_check(
                 gpt.transformer.transformer_blocks[tb_index].attention.attention.bias,
-                d[f"h.{tb_index}.attn.c_attn.bias"],
+                d[f"transformer.h.{tb_index}.attn.c_attn.bias"],
             )
         )
         gpt.transformer.transformer_blocks[tb_index].attention.out_proj.weight = (
             assign_check(
                 gpt.transformer.transformer_blocks[tb_index].attention.out_proj.weight,
-                d[f"h.{tb_index}.attn.c_proj.weight"].T,
+                d[f"transformer.h.{tb_index}.attn.c_proj.weight"].T,
             )
         )
         gpt.transformer.transformer_blocks[tb_index].attention.out_proj.bias = (
             assign_check(
                 gpt.transformer.transformer_blocks[tb_index].attention.out_proj.bias,
-                d[f"h.{tb_index}.attn.c_proj.bias"],
+                d[f"transformer.h.{tb_index}.attn.c_proj.bias"],
             )
         )
 
         gpt.transformer.transformer_blocks[tb_index].mlp.fc.weight = assign_check(
             gpt.transformer.transformer_blocks[tb_index].mlp.fc.weight,
-            d[f"h.{tb_index}.mlp.c_fc.weight"].T,
+            d[f"transformer.h.{tb_index}.mlp.c_fc.weight"].T,
         )
         gpt.transformer.transformer_blocks[tb_index].mlp.fc.bias = assign_check(
             gpt.transformer.transformer_blocks[tb_index].mlp.fc.bias,
-            d[f"h.{tb_index}.mlp.c_fc.bias"],
+            d[f"transformer.h.{tb_index}.mlp.c_fc.bias"],
         )
         gpt.transformer.transformer_blocks[tb_index].mlp.projection.weight = (
             assign_check(
                 gpt.transformer.transformer_blocks[tb_index].mlp.projection.weight,
-                d[f"h.{tb_index}.mlp.c_proj.weight"].T,
+                d[f"transformer.h.{tb_index}.mlp.c_proj.weight"].T,
             )
         )
         gpt.transformer.transformer_blocks[tb_index].mlp.projection.bias = assign_check(
             gpt.transformer.transformer_blocks[tb_index].mlp.projection.bias,
-            d[f"h.{tb_index}.mlp.c_proj.bias"],
+            d[f"transformer.h.{tb_index}.mlp.c_proj.bias"],
         )
 
         gpt.transformer.transformer_blocks[tb_index].layernorm_1.weight = assign_check(
             gpt.transformer.transformer_blocks[tb_index].layernorm_1.weight,
-            d[f"h.{tb_index}.ln_1.weight"],
+            d[f"transformer.h.{tb_index}.ln_1.weight"],
         )
         gpt.transformer.transformer_blocks[tb_index].layernorm_1.bias = assign_check(
             gpt.transformer.transformer_blocks[tb_index].layernorm_1.bias,
-            d[f"h.{tb_index}.ln_1.bias"],
+            d[f"transformer.h.{tb_index}.ln_1.bias"],
         )
 
         gpt.transformer.transformer_blocks[tb_index].layernorm_2.weight = assign_check(
             gpt.transformer.transformer_blocks[tb_index].layernorm_2.weight,
-            d[f"h.{tb_index}.ln_2.weight"],
+            d[f"transformer.h.{tb_index}.ln_2.weight"],
         )
         gpt.transformer.transformer_blocks[tb_index].layernorm_2.bias = assign_check(
             gpt.transformer.transformer_blocks[tb_index].layernorm_2.bias,
-            d[f"h.{tb_index}.ln_2.bias"],
+            d[f"transformer.h.{tb_index}.ln_2.bias"],
         )
 
     gpt.transformer.final_layernorm.weight = assign_check(
-        gpt.transformer.final_layernorm.weight, d["ln_f.weight"]
+        gpt.transformer.final_layernorm.weight, d["transformer.ln_f.weight"]
     )
     gpt.transformer.final_layernorm.bias = assign_check(
-        gpt.transformer.final_layernorm.bias, d["ln_f.bias"]
+        gpt.transformer.final_layernorm.bias, d["transformer.ln_f.bias"]
     )
 
-    gpt.out_head.weight = assign_check(gpt.out_head.weight, d["wte.weight"])
+    gpt.out_head.weight = assign_check(gpt.out_head.weight, d["transformer.wte.weight"])

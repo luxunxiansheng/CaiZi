@@ -37,6 +37,8 @@ class MultiHeadAttention(nn.Module):
         
         self.attention_dropout = nn.Dropout(dropout)
         self.residual_dropout = nn.Dropout(dropout)
+        
+        self.dropout = dropout
 
         self.num_heads = num_heads
         self.dimension_embedding = dimension_embedding
@@ -65,7 +67,7 @@ class MultiHeadAttention(nn.Module):
         # causal self-attention; Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
         if self.flash:
             # efficient attention using Flash Attention CUDA kernels
-            y = torch.nn.functional.scaled_dot_product_attention(q, k, v, attn_mask=None, dropout_p=self.attention_dropout.p if self.training else 0, is_causal=True)
+            y = torch.nn.functional.scaled_dot_product_attention(q, k, v, attn_mask=None, dropout_p=self.dropout if self.training else 0, is_causal=True)
         else:
             # manual implementation of attention
             attention = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))
