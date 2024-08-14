@@ -10,6 +10,7 @@
 """
 
 import torch
+from torch.nn import functional as F
 
 from model.GPT import GPT
 from token_processor import TikTokenizer
@@ -26,60 +27,28 @@ class TextGenerator:
         self,
         idx,
         max_new_tokens,
-        context_size,
-        temperature=0.0,
-        top_k=None,
-        eos_id=None,
+        block_size,
+        temperature=1.0,
+        top_k=None,        
     ) -> str:
-        
-        self.model.eval()
         for _ in range(max_new_tokens):
             idx = idx.to(self.device)
-            # Crop current context if it exceeds the supported context size
-            # E.g., if LLM supports only 5 tokens, and the context size is 10
-            # then only the last 5 tokens are used as context
-            idx_cond = idx[:, -context_size:]
-
-            # Get the predictions        
+            # if the sequence context is growing too long we must crop it at block_size
+            idx_cond = idx if idx.size(1) <= block_size else idx[:, -block_size:]
+            # forward the model to get the logits for the index in the sequence
             logits = self.model(idx_cond)
-
-            # Focus only on the last time step
-            # (batch, n_tokens, vocab_size) becomes (batch, vocab_size)
-            logits = logits[:, -1, :]
-
+            # pluck the logits at the final step and scale by desired temperature
+            logits = logits[:, -1, :] / temperature
+            # optionally crop the logits to only the top k options
             if top_k is not None:
-                # Keep only top_k values
-                top_logits, _ = torch.topk(logits, top_k)
-                min_val = top_logits[:, -1]
-                logits = torch.where(
-                    logits < min_val,
-                    torch.tensor(float("-inf")).to(logits.device),
-                    logits,
-                )
-
-            #  Apply temperature scaling
-            if temperature > 0.0:
-                logits = logits / temperature
-
-                # Apply softmax to get probabilities
-                probs = torch.softmax(logits, dim=-1)  # (batch_size, context_len)
-
-                # Sample from the distribution
-                idx_next = torch.multinomial(probs, num_samples=1)  # (batch_size, 1)
-
-            # Otherwise same as before: get idx of the vocab entry with the highest logits value
-            else:
-                idx_next = torch.argmax(logits, dim=-1, keepdim=True)  # (batch_size, 1)
-
-            if (
-                idx_next == eos_id
-            ):  # Stop generating early if end-of-sequence token is encountered and eos_id is specified
-                break
-
-            # Append sampled index to the running sequence
-            idx = torch.cat((idx, idx_next), dim=1)  # (batch, n_tokens+1)
-
-            idx = idx.cpu()
+                v, _ = torch.topk(logits, min(top_k, logits.size(-1)))
+                logits[logits < v[:, [-1]]] = -float('Inf')
+            # apply softmax to convert logits to (normalized) probabilities
+            probs = F.softmax(logits, dim=-1)
+            # sample from the distribution
+            idx_next = torch.multinomial(probs, num_samples=1)
+            # append sampled index to the running sequence and continue
+            idx = torch.cat((idx, idx_next), dim=1)
         
         flat = idx.squeeze(0)
         decoded_text = self.tokenizer.decode(flat.tolist())

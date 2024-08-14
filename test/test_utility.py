@@ -132,10 +132,12 @@ class UtilityTest(unittest.TestCase):
         torch.cuda.manual_seed(seed)
         torch.backends.cuda.matmul.allow_tf32 = True # allow tf32 on matmul
         torch.backends.cudnn.allow_tf32 = True # allow tf32 on cudnn
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
-        dtype = 'bfloat16' if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else 'float16' # 'float32' or 'bfloat16' or 'float16'
-        device = 'cuda:3' # examples: 'cpu', 'cuda', 'cuda:0', 'cuda:1', etc.
+
+        dtype = 'float16' if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else 'float16' # 'float32' or 'bfloat16' or 'float16'
+        
+        
+        
+        device = 'cuda' # examples: 'cpu', 'cuda', 'cuda:0', 'cuda:1', etc.
         device_type = 'cuda' if 'cuda' in device else 'cpu' # for later use in torch.autocast
         ptdtype = {'float32': torch.float32, 'bfloat16': torch.bfloat16, 'float16': torch.float16}[dtype]
         ctx = nullcontext() if device_type == 'cpu' else torch.amp.autocast(device_type=device_type, dtype=ptdtype)
@@ -169,28 +171,27 @@ class UtilityTest(unittest.TestCase):
             config["dropout"],
             config["bias"],
     )
-        print("model:", model)
-
+   
         load_hf_weights_into_gpt(model, "gpt2")
         
        
         # Create a TextGenerator instance
-        text_generator = TextGenerator(
-            model, device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        )
+        text_generator = TextGenerator(model, device=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
         
         with torch.no_grad():
             with ctx:
+                
+        
                 for k in range(10):        
                     # Generate new text
                     decoded = text_generator(
                         encoded_tensor,
                         max_new_tokens=500,
-                        context_size=1024,
+                        block_size=1024,
                         temperature=0.8,
                         top_k=200
                     )
-                    print("decoded:", decoded)
+                    print(decoded)
 
 
 if __name__ == "__main__":
