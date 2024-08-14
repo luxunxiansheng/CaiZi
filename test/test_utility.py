@@ -2,6 +2,7 @@
 import unittest
 
 import tempfile
+from contextlib import nullcontext
 
 import torch
 import ray
@@ -131,6 +132,14 @@ class UtilityTest(unittest.TestCase):
         torch.cuda.manual_seed(seed)
         torch.backends.cuda.matmul.allow_tf32 = True # allow tf32 on matmul
         torch.backends.cudnn.allow_tf32 = True # allow tf32 on cudnn
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+        dtype = 'bfloat16' if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else 'float16' # 'float32' or 'bfloat16' or 'float16'
+        device = 'cuda:3' # examples: 'cpu', 'cuda', 'cuda:0', 'cuda:1', etc.
+        device_type = 'cuda' if 'cuda' in device else 'cpu' # for later use in torch.autocast
+        ptdtype = {'float32': torch.float32, 'bfloat16': torch.bfloat16, 'float16': torch.float16}[dtype]
+        ctx = nullcontext() if device_type == 'cpu' else torch.amp.autocast(device_type=device_type, dtype=ptdtype)
+        
         
         tokenizer = TikTokenizer()
         start_context = "\n"
@@ -169,17 +178,19 @@ class UtilityTest(unittest.TestCase):
         text_generator = TextGenerator(
             model, device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
         )
-
-        for k in range(10):        
-            # Generate new text
-            decoded = text_generator(
-                encoded_tensor,
-                max_new_tokens=500,
-                context_size=1024,
-                temperature=0.8,
-                top_k=200
-            )
-            print("decoded:", decoded)
+        
+        with torch.no_grad():
+            with ctx:
+                for k in range(10):        
+                    # Generate new text
+                    decoded = text_generator(
+                        encoded_tensor,
+                        max_new_tokens=500,
+                        context_size=1024,
+                        temperature=0.8,
+                        top_k=200
+                    )
+                    print("decoded:", decoded)
 
 
 if __name__ == "__main__":

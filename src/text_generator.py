@@ -40,10 +40,8 @@ class TextGenerator:
             # then only the last 5 tokens are used as context
             idx_cond = idx[:, -context_size:]
 
-            # Get the predictions
-            with torch.no_grad():
-                with torch.autocast(device_type=idx_cond.device.type, dtype=torch.bfloat16):
-                    logits = self.model(idx_cond)
+            # Get the predictions        
+            logits = self.model(idx_cond)
 
             # Focus only on the last time step
             # (batch, n_tokens, vocab_size) becomes (batch, vocab_size)
