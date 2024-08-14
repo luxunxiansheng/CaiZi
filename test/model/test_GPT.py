@@ -24,8 +24,8 @@ class TestGPT(unittest.TestCase):
         block_size = 1024
         num_header = 12
         n_layers = 12
-        drop_rate = 0.1
-        bias = False
+        drop_rate = 0.0
+        bias = True
 
         model = GPT(vocab_size, dimension_embedding, block_size,n_layers, num_header, drop_rate, bias)
         

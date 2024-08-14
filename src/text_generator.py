@@ -42,7 +42,8 @@ class TextGenerator:
 
             # Get the predictions
             with torch.no_grad():
-                logits = self.model(idx_cond)
+                with torch.autocast(device_type=idx_cond.device.type, dtype=torch.bfloat16):
+                    logits = self.model(idx_cond)
 
             # Focus only on the last time step
             # (batch, n_tokens, vocab_size) becomes (batch, vocab_size)
