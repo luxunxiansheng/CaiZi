@@ -294,6 +294,8 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
                         logits = model(physical_input_ids_in_current_step)                    
                         physical_loss = loss_function(logits.flatten(0, 1), physical_target_ids_in_current_step.flatten())
                     physical_loss = physical_loss / gradient_accumulation_steps # normalize the loss to account for the gradient accumulation
+                    
+                    model.require_backward_grad_sync = (step == gradient_accumulation_steps - 1)
                     physical_loss.backward()
                     
                     logical_train_loss += physical_loss.detach().item() #  for reporting

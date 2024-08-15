@@ -4,9 +4,9 @@
     "context": "..",
     "dockerfile": "Dockerfile",
     "args": {
-      "http_proxy": "${localEnv:http_proxy}",
-      "https_proxy": "${localEnv:https_proxy}",
-      "no_proxy": "${localEnv:no_proxy}"
+      // "http_proxy": "${localEnv:http_proxy}",
+      // "https_proxy": "${localEnv:https_proxy}",
+      // "no_proxy": "${localEnv:no_proxy}"
     }
   },
   "containerEnv": {
@@ -14,14 +14,25 @@
     "HTTPS_PROXY": "${localEnv:HTTPS_PROXY}",
     "http_proxy": "${localEnv:http_proxy}",
     "https_proxy": "${localEnv:https_proxy}",
-    "no_proxy": "localhost,127.0.0.1,192.168.0.0/24,git.raysightmed.com" // Adjusted with your no_proxy list
+    "no_proxy": "localhost,127.0.0.1" // Adjusted with your no_proxy list
   },
 
   "runArgs": [
-    "--runtime=nvidia",
-    "--gpus=all",
-    "--shm-size=8.30gb",
-    "--cap-add=SYS_PTRACE",
+		"--runtime=nvidia",
+		"--gpus=all",
+		"--shm-size=8.30gb",
+		"--cap-add=SYS_PTRACE",
+		"--env",
+		"HTTP_PROXY=${localEnv:http_proxy}",
+		"--env",
+		"HTTPS_PROXY=${localEnv:https_proxy}",
+		"--env",
+		"http_proxy=${localEnv:http_proxy}",
+		"--env",
+		"https_proxy=${localEnv:https_proxy}",
+		"--env",
+		"no_proxy=localhost,127.0.0.1",
+		"--network=host"
   ],
   "customizations": {
     "vscode": {
@@ -61,9 +72,8 @@
     }
   },
   "features": {
-    "ghcr.io/balazs23/devcontainers-features/bazel:1": {
-      "bazelisk": "v1.15.0"
-    },
-    "ghcr.io/devcontainers-contrib/features/prometheus:1.0.2": {}
+    "ghcr.io/balazs23/devcontainers-features/bazel:1": {},
+    "ghcr.io/devcontainers-contrib/features/prometheus:1": {},
+   
   }
 }
