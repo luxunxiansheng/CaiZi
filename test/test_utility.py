@@ -1,9 +1,8 @@
-from ast import mod
-from json import load
 
 import unittest
 
 import tempfile
+from contextlib import nullcontext
 
 import torch
 import ray
@@ -128,47 +127,71 @@ class UtilityTest(unittest.TestCase):
 
     # @unittest.skip("skip")
     def test_load_weights_to_gpt(self):
-        tokenizer = TikTokenizer()
-        start_context = "Every effort moves you"
-        encoded_tensor = tokenizer.encode(start_context)
+        seed = 1337
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed(seed)
+        torch.backends.cuda.matmul.allow_tf32 = True # allow tf32 on matmul
+        torch.backends.cudnn.allow_tf32 = True # allow tf32 on cudnn
 
-        vocab_size = 50257
-        dimension_embedding = 768
-        block_size = 1024
-        num_header = 12
-        n_layers = 12
-        drop_rate = 0.0
-        bias = True
+        dtype = 'float16' if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else 'float16' # 'float32' or 'bfloat16' or 'float16'
+        
+        
+        
+        device = 'cuda' # examples: 'cpu', 'cuda', 'cuda:0', 'cuda:1', etc.
+        device_type = 'cuda' if 'cuda' in device else 'cpu' # for later use in torch.autocast
+        ptdtype = {'float32': torch.float32, 'bfloat16': torch.bfloat16, 'float16': torch.float16}[dtype]
+        ctx = nullcontext() if device_type == 'cpu' else torch.amp.autocast(device_type=device_type, dtype=ptdtype)
+        
+        
+        tokenizer = TikTokenizer()
+        start_context = "\n"
+        encoded_tensor = tokenizer.encode(start_context)
+        
+        model_type = "gpt2"
+        
+            # n_layer, n_head and n_embd are determined from model_type
+        config = {
+            "gpt2": dict(n_layer=12, n_head=12, n_embd=768),  # 124M params
+            "gpt2-medium": dict(n_layer=24, n_head=16, n_embd=1024),  # 350M params
+            "gpt2-large": dict(n_layer=36, n_head=20, n_embd=1280),  # 774M params
+            "gpt2-xl": dict(n_layer=48, n_head=25, n_embd=1600),  # 1558M params
+        }[model_type]
+        print("forcing vocab_size=50257, block_size=1024, bias=True")
+        config["vocab_size"] = 50257  # always 50257 for GPT model checkpoints
+        config["block_size"] = 1024  # always 1024 for GPT model checkpoints
+        config["bias"] = True  # always True for GPT model checkpoints
+        config["dropout"] = 0.0  # always 0.1 for GPT model checkpoints
 
         model = GPT(
-            vocab_size,
-            dimension_embedding,
-            block_size,
-            n_layers,
-            num_header,
-            drop_rate,
-            bias,
-        )
-
-        print("model:", model)
-
+            config["vocab_size"],
+            config["n_embd"],
+            config["block_size"],
+            config["n_layer"],
+            config["n_head"],
+            config["dropout"],
+            config["bias"],
+    )
+   
         load_hf_weights_into_gpt(model, "gpt2")
         
-        print("model relaod from hf:", model)
-
-        torch.manual_seed(123)
-
+       
         # Create a TextGenerator instance
-        text_generator = TextGenerator(
-            model, device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        )
-        # Generate new text
-        decoded = text_generator(
-            encoded_tensor,
-            max_new_tokens=25,
-            context_size=1024,
-        )
-        print("decoded:", decoded)
+        text_generator = TextGenerator(model, device=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+        
+        with torch.no_grad():
+            with ctx:
+                
+        
+                for k in range(10):        
+                    # Generate new text
+                    decoded = text_generator(
+                        encoded_tensor,
+                        max_new_tokens=500,
+                        block_size=1024,
+                        temperature=0.8,
+                        top_k=200
+                    )
+                    print(decoded)
 
 
 if __name__ == "__main__":

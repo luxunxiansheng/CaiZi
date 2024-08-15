@@ -26,7 +26,7 @@ class TestTextGenerator(unittest.TestCase):
         num_header = 12
         n_layers = 12
         drop_rate = 0.1
-        bias = False
+        bias = True
 
         model = GPT(vocab_size, dimension_embedding, block_size,n_layers, num_header, drop_rate, bias)
         
@@ -36,7 +36,7 @@ class TestTextGenerator(unittest.TestCase):
         text_generator = TextGenerator(model, device = torch.device("cuda" if torch.cuda.is_available() else "cpu"))
         
         # Generate new text
-        decoded = text_generator(encoded_tensor, max_new_tokens=6, context_size=1024)
+        decoded = text_generator(encoded_tensor, max_new_tokens=6, block_size=1024)
 
         print("decoded:", decoded)
         

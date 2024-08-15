@@ -4,7 +4,6 @@ pandas
 matplotlib
 jupyterlab
 watermark
-torch
 tiktoken
 ray[all]
 hydra-core
@@ -15,6 +14,7 @@ ipywidgets
 torchmetrics
 tensorflow
 transformers
+
 
 
 

@@ -33,7 +33,7 @@ class MultiHeadAttention(nn.Module):
         ), "d_out must be divisible by n_heads"
         
         self.attention = nn.Linear(dimension_embedding, dimension_embedding * 3, bias=bias)
-        self.out_proj = nn.Linear(dimension_embedding, dimension_embedding)  # Linear layer to combine head outputs
+        self.out_proj = nn.Linear(dimension_embedding, dimension_embedding,bias=bias)  # Linear layer to combine head outputs
         
         self.attention_dropout = nn.Dropout(dropout)
         self.residual_dropout = nn.Dropout(dropout)

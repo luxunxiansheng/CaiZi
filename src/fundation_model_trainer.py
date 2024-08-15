@@ -93,7 +93,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             "max_lr": self.cfg["ray_train"]["max_lr"],
             "min_lr": self.cfg["ray_train"]["min_lr"],
             "weight_decay": self.cfg["ray_train"]["weight_decay"],
-            "total_batch_size": self.cfg["ray_train"]["total_batch_size"],
+            "total_tokens_per_batch": self.cfg["ray_train"]["total_tokens_per_batch"],
         }
 
         dataset = self.cfg["dataset"]
@@ -186,7 +186,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         max_lr = cfg["max_lr"]
         min_lr = cfg["min_lr"]
         weight_decay = cfg["weight_decay"]
-        total_tokens_per_batch = cfg["total_batch_size"]
+        total_tokens_per_batch = cfg["total_tokens_per_batch"]
 
         rank = ray.train.get_context().get_world_rank()
         device = torch.device(f"cuda:{rank}" if torch.cuda.is_available() else "cpu")
@@ -277,7 +277,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             
             for logical_batch in train_data_shard.iter_torch_batches(
                 batch_size=logical_batch_size_per_worker,
-                drop_last=True,
+                drop_last=False,
                 local_shuffle_buffer_size=1000,
             ):
                 logical_batch_count += 1
@@ -306,6 +306,8 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
                 
 
             torch.cuda.synchronize()
+            
+            assert logical_batch_count > 0, "logical_batch_count must be greater than 0"
 
             logical_train_loss = logical_train_loss / logical_batch_count
             report_metrics["logical_train_loss"] = logical_train_loss

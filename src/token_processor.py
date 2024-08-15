@@ -42,5 +42,5 @@ class TikTokenizer(TokenProcessor):
         return  self.tokenizer.decode(input_ids)
         
     def encode(self, text:str) -> torch.Tensor:
-        encoded = self.tokenizer.encode_ordinary(text)
+        encoded = self.tokenizer.encode(text,allowed_special={"<|endoftext|>"})
         return  torch.tensor(encoded).unsqueeze(0)
