@@ -16,7 +16,6 @@ from pathlib import Path
 
 import time
 
-from numpy import gradient
 import ray.train
 import ray.train.torch
 import torch
@@ -423,8 +422,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
 
     @staticmethod
     def _prepare_optimizer(weight_decay, max_lr, model):
-        device_type = model.device.type
-
+        
         # start with all of the candidate parameters
         param_dict = {pn: p for pn, p in model.named_parameters()}
         # filter out those that do not require grad
@@ -449,7 +447,8 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
 
         # Create AdamW optimizer and use the fused version if it is available
         fused_available = "fused" in inspect.signature(torch.optim.AdamW).parameters
-        use_fused = fused_available and "cuda" in device_type
+        device_type = next(model.parameters()).device
+        use_fused = fused_available and "cuda" in str(device_type)
         extra_args = dict(fused=True) if use_fused else dict()
 
         optimizer = torch.optim.AdamW(
