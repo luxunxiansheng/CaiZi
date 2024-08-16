@@ -12,6 +12,7 @@
 from calendar import c
 import os
 
+from tabnanny import check
 import urllib.request
 from tqdm import tqdm
 
@@ -19,6 +20,9 @@ from tqdm import tqdm
 import torch
 from torch.nn import Module
 from torch.optim import Optimizer
+
+from torch.amp import GradScaler
+
 from ray.train import Checkpoint
 
 from transformers import GPT2LMHeadModel
@@ -29,45 +33,40 @@ from model.GPT import GPT
 def save_checkpoint(
     model: Module,
     optimizer: Optimizer,
+    scaler: GradScaler,
     epoch: int,
     perplexity: float,
     best_checkpoint_dir: str,
 ):
+    checkpoint ={
+        "model": model.state_dict(),
+        "optimizer": optimizer.state_dict(),
+        "scaler": scaler.state_dict(),
+        "epoch": epoch,
+        "perplexity": perplexity,
+    }
+
 
     torch.save(
-        model.state_dict(),  # NOTE: Unwrap the model.
-        os.path.join(best_checkpoint_dir, "model.pt"),
-    )
-    torch.save(
-        optimizer.state_dict(),
-        os.path.join(best_checkpoint_dir, "optimizer.pt"),
-    )
-    torch.save(
-        {
-            "epoch": epoch,
-            "perplexity": perplexity,
-        },
-        os.path.join(best_checkpoint_dir, "extra_state.pt"),
+        checkpoint,
+        os.path.join(best_checkpoint_dir, "checkpoint.pt"),
     )
 
 
 def resume_checkpoint(
-    model: Module, optimizer: Optimizer, checkpoint: Checkpoint
-) -> tuple[int, float]:
+    model: Module, optimizer: Optimizer, scaler:GradScaler,checkpoint: Checkpoint,device:str) -> tuple[int, float]:
     with checkpoint.as_directory() as checkpoint_dir:
-        model_state_dict = torch.load(
-            os.path.join(checkpoint_dir, "model.pt"),
-            # map_location=...,  # Load onto a different device if needed.
-        )
-        model.load_state_dict(model_state_dict)
-        optimizer.load_state_dict(
-            torch.load(os.path.join(checkpoint_dir, "optimizer.pt"))
-        )
-        extra_state = torch.load(os.path.join(checkpoint_dir, "extra_state.pt"))
-
+        checkpoint_dict = torch.load(os.path.join(checkpoint_dir, "checkpoint.pt"), map_location=device)
+        
+        model.load_state_dict(checkpoint_dict["model"])
+        optimizer.load_state_dict(checkpoint_dict["optimizer"])
+        scaler.load_state_dict(checkpoint_dict["scaler"])
+        epoch = checkpoint_dict["epoch"] if "epoch" in checkpoint_dict else 0
+        perplexity = checkpoint_dict["perplexity"] if "perplexity" in checkpoint_dict else float("inf")
+        
     return (
-        extra_state["epoch"],
-        extra_state["perplexity"],
+        epoch,
+        perplexity,
     )
 
 

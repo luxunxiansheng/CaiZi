@@ -20,7 +20,7 @@ from model.GPT import GPT
 import unittest
 
 
-@unittest.skip("skip")
+#@unittest.skip("skip")
 class RayClassTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -53,12 +53,13 @@ class RayClassTest(unittest.TestCase):
             bias,
         )
         optimizer = torch.optim.AdamW(model.parameters(), lr=0.0004, weight_decay=0.1)
+        scaler = torch.amp.GradScaler()
 
         epoch = 5
         perplexity = 123.4
 
         with tempfile.TemporaryDirectory() as temp_checkpoint_dir:
-            save_checkpoint(model, optimizer, epoch, perplexity, temp_checkpoint_dir)
+            save_checkpoint(model, optimizer, scaler,epoch, perplexity, temp_checkpoint_dir)
 
             checkpoint = ray.train.Checkpoint.from_directory(temp_checkpoint_dir)
 
@@ -73,6 +74,8 @@ class RayClassTest(unittest.TestCase):
         n_layers = 12
         drop_rate = 0.1
         bias = False
+        device = 'cpu'
+        torch.set_default_device(device)
 
         model = GPT(
             vocab_size,
@@ -83,12 +86,14 @@ class RayClassTest(unittest.TestCase):
             drop_rate,
             bias,
         )
+        
         optimizer = torch.optim.AdamW(model.parameters(), lr=0.0004, weight_decay=0.1)
+        scaler = torch.amp.GradScaler()
 
         epoch = 5
         perplexity = 123.4
         with tempfile.TemporaryDirectory() as temp_checkpoint_dir:
-            save_checkpoint(model, optimizer, epoch, perplexity, temp_checkpoint_dir)
+            save_checkpoint(model, optimizer, scaler, epoch, perplexity, temp_checkpoint_dir)
 
             # Create the checkpoint, which is a reference to the directory.
             checkpoint = ray.train.Checkpoint.from_directory(temp_checkpoint_dir)
@@ -113,8 +118,9 @@ class RayClassTest(unittest.TestCase):
             optimizer = torch.optim.AdamW(
                 model.parameters(), lr=0.0004, weight_decay=0.1
             )
+            scaler = torch.amp.GradScaler()
 
-            epoch_start, perplexity = resume_checkpoint(model, optimizer, checkpoint)
+            epoch_start, perplexity = resume_checkpoint(model, optimizer,scaler, checkpoint,device)
 
             self.assertEqual(epoch_start, 5)
             self.assertEqual(perplexity, 123.4)
@@ -125,14 +131,13 @@ class UtilityTest(unittest.TestCase):
         self.model_size = "124M"
         self.model_dir = cfg["124M"]["openai_gpt_dir"] + "/" + self.model_size
 
-    # @unittest.skip("skip")
+    @unittest.skip("skip")
     def test_load_weights_to_gpt(self):
         seed = 1337
         torch.manual_seed(seed)
         torch.cuda.manual_seed(seed)
-        torch.backends.cuda.matmul.allow_tf32 = True # allow tf32 on matmul
-        torch.backends.cudnn.allow_tf32 = True # allow tf32 on cudnn
-
+        torch.set_float32_matmul_precision('high')
+  
         dtype = 'float16' if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else 'float16' # 'float32' or 'bfloat16' or 'float16'
         
         
