@@ -93,6 +93,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             "min_lr": self.cfg["ray_train"]["min_lr"],
             "weight_decay": self.cfg["ray_train"]["weight_decay"],
             "total_tokens_per_batch": self.cfg["ray_train"]["total_tokens_per_batch"],
+            "data_type": self.cfg["ray_train"]["data_type"],
         }
 
         dataset = self.cfg["dataset"]
@@ -186,9 +187,20 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         min_lr = cfg["min_lr"]
         weight_decay = cfg["weight_decay"]
         total_tokens_per_batch = cfg["total_tokens_per_batch"]
-   
+        data_type = cfg["data_type"]
+
+        floating_point_precision = {
+            "float32": torch.float32,
+            "bfloat16": torch.bfloat16,
+            "float16": torch.float16,
+        }[data_type]
+
         rank = ray.train.get_context().get_world_rank()
         device = torch.device(f"cuda:{rank}" if torch.cuda.is_available() else "cpu")
+        
+        torch.manual_seed(1337 + rank)
+        torch.backends.cuda.matmul.allow_tf32 = True  # allow tf32 on matmul
+        torch.backends.cudnn.allow_tf32 = True  # allow tf32 on cudnn
 
         torch.set_float32_matmul_precision("high")
 
@@ -253,16 +265,20 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         assert (
             total_tokens_per_batch % (batch_size_per_worker * block_size) == 0
         ), "total_batch_size must be divisible by batch_size_per_worker*block_size"
-        
-        logical_batch_size_per_worker = total_tokens_per_batch // block_size  # logical batch size
-        
-        gradient_accumulation_steps = logical_batch_size_per_worker //batch_size_per_worker  
-        
+
+        logical_batch_size_per_worker = (
+            total_tokens_per_batch // block_size
+        )  # logical batch size
+
+        gradient_accumulation_steps = (
+            logical_batch_size_per_worker // batch_size_per_worker
+        )
+
         print(f"total_batch_size: {total_tokens_per_batch}")
         print(f"gradient_accumulation_steps: {gradient_accumulation_steps}")
-        
+
         token_processed = 0
-        
+
         for epoch in range(epoch_start + 1, num_epoch_per_worker + 1):
             model.train()
 
@@ -273,7 +289,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             logical_train_loss = 0
             logical_batch_count = 0
             t0 = time.time()
-            
+
             for logical_batch in train_data_shard.iter_torch_batches(
                 batch_size=logical_batch_size_per_worker,
                 drop_last=False,
@@ -282,32 +298,49 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
                 logical_batch_count += 1
                 logical_input_ids = logical_batch["input_ids"]
                 logical_target_ids = logical_batch["target_ids"]
-                
+
                 optimizer.zero_grad()
                 for step in range(gradient_accumulation_steps):
-                    physical_input_ids_in_current_step = logical_input_ids[step:step+batch_size_per_worker]
-                    physical_target_ids_in_current_step = logical_target_ids[step:step+batch_size_per_worker]
-                    
+                    physical_input_ids_in_current_step = logical_input_ids[
+                        step : step + batch_size_per_worker
+                    ]
+                    physical_target_ids_in_current_step = logical_target_ids[
+                        step : step + batch_size_per_worker
+                    ]
+
                     # https://pytorch.org/tutorials/recipes/recipes/amp_recipe.html
-                    with torch.autocast(device_type=physical_input_ids_in_current_step.device.type, dtype=torch.bfloat16):
-                        logits = model(physical_input_ids_in_current_step)                    
-                        physical_loss = loss_function(logits.flatten(0, 1), physical_target_ids_in_current_step.flatten())
-                    physical_loss = physical_loss / gradient_accumulation_steps # normalize the loss to account for the gradient accumulation
-                    
-                    model.require_backward_grad_sync = (step == gradient_accumulation_steps - 1)
+                    with torch.autocast(
+                        device_type=physical_input_ids_in_current_step.device.type,
+                        dtype=torch.bfloat16,
+                    ):
+                        logits = model(physical_input_ids_in_current_step)
+                        physical_loss = loss_function(
+                            logits.flatten(0, 1),
+                            physical_target_ids_in_current_step.flatten(),
+                        )
+                    physical_loss = (
+                        physical_loss / gradient_accumulation_steps
+                    )  # normalize the loss to account for the gradient accumulation
+
+                    model.require_backward_grad_sync = (
+                        step == gradient_accumulation_steps - 1
+                    )
                     physical_loss.backward()
-                    
-                    logical_train_loss += physical_loss.detach().item() #  for reporting
-                    
-                    token_processed += batch_size_per_worker * block_size*step # for reporting
-                
+
+                    logical_train_loss += (
+                        physical_loss.detach().item()
+                    )  #  for reporting
+
+                    token_processed += (
+                        batch_size_per_worker * block_size * step
+                    )  # for reporting
+
                 norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
                 optimizer.step()
                 scheduler.step()
-                
 
             torch.cuda.synchronize()
-            
+
             assert logical_batch_count > 0, "logical_batch_count must be greater than 0"
 
             logical_train_loss = logical_train_loss / logical_batch_count
@@ -315,7 +348,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
 
             t1 = time.time()
             dt = t1 - t0
-            
+
             token_per_second = token_processed / dt
 
             report_metrics["token_per_second"] = token_per_second
@@ -341,7 +374,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
                             device_type=input_ids.device.type, dtype=torch.bfloat16
                         ):
                             logits = model(input_ids)
-                            
+
                             loss = loss_function(
                                 logits.flatten(0, 1), target_ids.flatten()
                             )
@@ -422,7 +455,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
 
     @staticmethod
     def _prepare_optimizer(weight_decay, max_lr, model):
-        
+
         # start with all of the candidate parameters
         param_dict = {pn: p for pn, p in model.named_parameters()}
         # filter out those that do not require grad

@@ -32,7 +32,7 @@ train_ratio: 0.9
   num_layers: 12 # number of layers
   num_headers: 12 # number of heads
   drop_rate: 0.0 # dropout rate
-  bias: True # whether to use bias in attention layer
+  bias: False # whether to use bias in attention layer
 
   openai_gpt_dir: ${model_weights_dir}/openai
 
@@ -53,15 +53,16 @@ ray_train:
 
   start_context: "To be, or not to be: that is the question."
   
-
   resume_training: False
   best_checkpoint_dir: ${model_weights_dir}/best_checkpoint
   
   weight_decay: 0.1
-  warmup_steps: 10
-  max_steps: 40
+  warmup_steps: 2e3
+  max_steps: 6e5
   max_lr: 6e-4
   min_lr: 6e-5
+
+  data_type: "bfloat16"
 
 
 
