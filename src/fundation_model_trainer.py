@@ -255,12 +255,17 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         report_metrics = {
             "rank": rank,
             "epoch": epoch_start,
-            "token_per_second": 0.0,
-            "token_total": 0,
-            "token_process_time_ms": 0.0,
+            "token_total_": 0,  # total tokens processed
+            "token_process_time_ms": 0.0, # time in ms
+            "token_per_second": 0.0,    # speed 
+        
+            "logical_train_loss": 0.0,
+            "logical_batch_count": 0,
+        
             "norm": 0.0,
             "validate_loss": 0.0,
             "perplexity": 0.0,
+            
             "best_epoch": best_epoch,
             "best_perplexity": best_perplexity,
         }
@@ -348,15 +353,17 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
 
             logical_train_loss = logical_train_loss / logical_batch_count
             report_metrics["logical_train_loss"] = logical_train_loss
+            report_metrics["logical_batch_count"] = logical_batch_count
 
             t1 = time.time()
             dt = t1 - t0
 
             token_per_second = token_processed / dt
 
-            report_metrics["token_per_second"] = token_per_second
+            
             report_metrics["token_total"] = token_processed
             report_metrics["token_process_time_ms"] = dt * 1000
+            report_metrics["token_per_second"] = token_per_second
 
             report_metrics["norm"] = norm.item()
 

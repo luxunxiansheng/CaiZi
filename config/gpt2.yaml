@@ -40,12 +40,12 @@ train_ratio: 0.9
 ray_train:
   num_workers:  1
   use_gpu: True
-  num_gpus_per_worker: 0.5
+  num_gpus_per_worker: 1
   num_cpus_per_worker: 1
 
   check_frequency: 1
   total_tokens_per_logical_batch_per_worker: 524288   # 2^19,~0.5M, in number of tokens
-  physical_training_batch_size_per_worker: 4
+  physical_training_batch_size_per_worker: 8
   num_epoch_per_worker: 80
 
   physical_validate_batch_size_per_worker: 1
