@@ -5,6 +5,7 @@ RUN sed -i 's|http://archive.ubuntu.com/ubuntu/|https://mirrors.tuna.tsinghua.ed
     apt-get update && \
     apt-get install -y sudo && \
     apt-get install -y screen && \
+    apt-get install -y net-tools && \
     apt-get install -y adduser libfontconfig1 musl  && \
     apt-get install -y --no-install-recommends git && \
     apt-get install -y build-essential && \
