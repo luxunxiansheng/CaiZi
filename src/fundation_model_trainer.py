@@ -186,7 +186,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         min_lr = cfg["min_lr"]
         weight_decay = cfg["weight_decay"]
         total_tokens_per_batch = cfg["total_tokens_per_batch"]
-
+   
         rank = ray.train.get_context().get_world_rank()
         device = torch.device(f"cuda:{rank}" if torch.cuda.is_available() else "cpu")
 
@@ -447,8 +447,8 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
 
         # Create AdamW optimizer and use the fused version if it is available
         fused_available = "fused" in inspect.signature(torch.optim.AdamW).parameters
-        device_type = next(model.parameters()).device
-        use_fused = fused_available and "cuda" in str(device_type)
+        device = ray.train.torch.get_device()
+        use_fused = fused_available and "cuda" in str(device)
         extra_args = dict(fused=True) if use_fused else dict()
 
         optimizer = torch.optim.AdamW(

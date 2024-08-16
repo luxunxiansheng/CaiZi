@@ -45,7 +45,7 @@ ray_train:
 
   check_frequency: 1
   total_tokens_per_batch: 524288   # 2^19,~0.5M, in number of tokens
-  batch_size_per_worker: 8
+  batch_size_per_worker: 16
   num_epoch_per_worker: 80
 
   storage_path: ${output_dir}/gpt2
