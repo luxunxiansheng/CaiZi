@@ -259,7 +259,6 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             "token_total": 0,
             "token_process_time_ms": 0.0,
             "norm": 0.0,
-            "train_loss": 0.0,
             "validate_loss": 0.0,
             "perplexity": 0.0,
             "best_epoch": best_epoch,
@@ -281,9 +280,11 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         print(f"total_tokens_per_logical_batch_per_worker: {total_tokens_per_logical_batch_per_worker}")
         print(f"gradient_accumulation_steps: {gradient_accumulation_steps}")
 
-        token_processed = 0
+        
 
         for epoch in range(epoch_start + 1, num_epoch_per_worker + 1):
+            token_processed = 0
+            
             model.train()
 
             current_rank = ray.train.get_context().get_world_rank()

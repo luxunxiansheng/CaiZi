@@ -20,7 +20,7 @@ from model.GPT import GPT
 import unittest
 
 
-#@unittest.skip("skip")
+@unittest.skip("skip")
 class RayClassTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -131,17 +131,14 @@ class UtilityTest(unittest.TestCase):
         self.model_size = "124M"
         self.model_dir = cfg["124M"]["openai_gpt_dir"] + "/" + self.model_size
 
-    @unittest.skip("skip")
+    #@unittest.skip("skip")
     def test_load_weights_to_gpt(self):
         seed = 1337
         torch.manual_seed(seed)
-        torch.cuda.manual_seed(seed)
         torch.set_float32_matmul_precision('high')
   
-        dtype = 'float16' if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else 'float16' # 'float32' or 'bfloat16' or 'float16'
-        
-        
-        
+        dtype = 'bfloat16' if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else 'float16' # 'float32' or 'bfloat16' or 'float16'
+
         device = 'cuda' # examples: 'cpu', 'cuda', 'cuda:0', 'cuda:1', etc.
         device_type = 'cuda' if 'cuda' in device else 'cpu' # for later use in torch.autocast
         ptdtype = {'float32': torch.float32, 'bfloat16': torch.bfloat16, 'float16': torch.float16}[dtype]
@@ -185,8 +182,6 @@ class UtilityTest(unittest.TestCase):
         
         with torch.no_grad():
             with ctx:
-                
-        
                 for k in range(10):        
                     # Generate new text
                     decoded = text_generator(
