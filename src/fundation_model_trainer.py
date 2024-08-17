@@ -112,6 +112,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             "drop_rate": self.cfg["124M"]["drop_rate"],
             "bias": self.cfg["124M"]["bias"],
             "check_frequency": self.cfg["ray_train"]["check_frequency"],
+            "gradient_accumulation_steps":self.cfg["ray_train"]["gradient_accumulation_steps"],
             "physical_training_batch_size_per_worker": self.cfg["ray_train"]["physical_training_batch_size_per_worker"],
             "physical_validate_batch_size_per_worker": self.cfg["ray_train"]["physical_validate_batch_size_per_worker"],
             "num_epoch_per_worker": self.cfg["ray_train"]["num_epoch_per_worker"],
@@ -126,12 +127,9 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             "beta2": self.cfg["ray_train"]["beta2"],
             "decay_lr": self.cfg["ray_train"]["decay_lr"],
             "weight_decay": self.cfg["ray_train"]["weight_decay"],
-            "total_tokens_per_logical_batch_per_worker": self.cfg["ray_train"]["total_tokens_per_logical_batch_per_worker"],
             "data_type": self.cfg["ray_train"]["data_type"],
           
         }
-
-
         trainer = ray.train.torch.TorchTrainer(
             train_loop_per_worker=RayGPT2FundationModelTrainer._train_workload_per_worker,
             train_loop_config=train_loop_config,
@@ -170,6 +168,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         drop_rate = cfg["drop_rate"]
         bias = cfg["bias"]
         check_frequency = cfg["check_frequency"]
+        gradient_accumulation_steps = cfg["gradient_accumulation_steps"]
         physical_training_batch_size_per_worker = cfg["physical_training_batch_size_per_worker"]
         physical_validate_batch_size_per_worker = cfg["physical_validate_batch_size_per_worker"]
         num_epoch_per_worker = cfg["num_epoch_per_worker"]
@@ -183,7 +182,6 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         beta2 = cfg["beta2"]
         decay_lr = cfg["decay_lr"]
         weight_decay = cfg["weight_decay"]
-        total_tokens_per_logical_batch_per_worker = cfg["total_tokens_per_logical_batch_per_worker"]
         data_type = cfg["data_type"]
         
 
@@ -272,22 +270,9 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             "best_perplexity": best_perplexity,
         }
 
-        assert (
-            total_tokens_per_logical_batch_per_worker % (physical_training_batch_size_per_worker * block_size) == 0
-        ), "total_batch_size must total_tokens_per_logical_batch_per_worker divisible by physical_training_batch_size_per_worker*block_size"
-
-        logical_batch_size_per_worker = (
-            total_tokens_per_logical_batch_per_worker // block_size
-        )  # logical batch size
-
-        gradient_accumulation_steps = (
-            logical_batch_size_per_worker // physical_training_batch_size_per_worker
-        )
-
-        print(f"total_tokens_per_logical_batch_per_worker: {total_tokens_per_logical_batch_per_worker}")
-        print(f"gradient_accumulation_steps: {gradient_accumulation_steps}")
-
+        logical_batch_size_per_worker = physical_training_batch_size_per_worker * gradient_accumulation_steps
         
+        print(f"total_tokens_per_logical_batch_per_worker: {logical_batch_size_per_worker*block_size}")
 
         for epoch in range(epoch_start + 1, num_epoch_per_worker + 1):
             token_processed = 0

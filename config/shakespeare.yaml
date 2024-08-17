@@ -50,11 +50,10 @@ ray_train:
 
   check_frequency: 1
 
-
-  total_tokens_per_logical_batch_per_worker: 16384  # 256(block_size) * 64(physical_training_batch_size_per_worker) 
+  gradient_accumulation_steps: 1
   physical_training_batch_size_per_worker: 64
   physical_validate_batch_size_per_worker: 1
-  num_epoch_per_worker: 64
+  num_epoch_per_worker: 5000
 
   # Training output
   storage_path: ${output_dir}/gpt2
