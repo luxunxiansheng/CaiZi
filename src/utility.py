@@ -9,12 +9,8 @@
 ###########################################
 """
 
-from calendar import c
 import os
 
-from tabnanny import check
-import urllib.request
-from tqdm import tqdm
 
 
 import torch

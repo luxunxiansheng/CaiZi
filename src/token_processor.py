@@ -39,7 +39,7 @@ class TikTokenizer(TokenProcessor):
         return {"ids": integers}
         
     def decode(self, input_ids:List[int]) -> str:       
-        return  self.tokenizer.decode(input_ids)
+        return self.tokenizer.decode(input_ids)
         
     def encode(self, text:str) -> torch.Tensor:
         encoded = self.tokenizer.encode(text,allowed_special={"<|endoftext|>"})

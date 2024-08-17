@@ -18,7 +18,6 @@ import time
 
 import ray.train
 import ray.train.torch
-from sympy import use
 import torch
 import torchmetrics
 
@@ -65,7 +64,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         chunk_processor = ChunkProcessor(max_length=block_size, stride=stride)
         train_chunked_tokens = train_tokens.flat_map(chunk_processor)
         validate_chunked_tokens = validate_tokens.flat_map(chunk_processor)
-
+        
         return train_chunked_tokens, validate_chunked_tokens
 
     def self_supervised_train(self):
@@ -192,7 +191,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         }[data_type]
 
         rank = ray.train.get_context().get_world_rank()
-        device = torch.device(f"cuda:{rank}" if torch.cuda.is_available() else "cpu")
+        device =ray.train.torch.get_device()
         use_amp = (floating_point_precision=="float16")
 
         torch.manual_seed(1337 + rank)
