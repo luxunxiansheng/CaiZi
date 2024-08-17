@@ -1,6 +1,8 @@
 from math import e
 import unittest
 
+from numpy import char
+
 from token_processor import CharTokenizer, TikTokenizer
 
 
@@ -37,6 +39,22 @@ class TestCharTokenizer(unittest.TestCase):
         
         print(self.token_processor.decode(encoded_text["ids"]))
 
+class TestTokenProcessor(unittest.TestCase):
+    def setUp(self) -> None:
+        pass
+    
+    def test_create(self):
+        token_processor_class= CharTokenizer.create("CharTokenizer")
+        char_token_processor = token_processor_class()
+        
+        
+   
+        
+    def test_call(self):
+        pass
+    
+    def test_decode(self):
+        pass
 
 if __name__ == "__main__":
     unittest.main()

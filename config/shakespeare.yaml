@@ -37,6 +37,11 @@ train_ratio: 0.9
   openai_gpt_dir: ${model_weights_dir}/openai
 
 
+ray_data:
+  # Tokenizer
+  tokenizer_class : CharTokenizer
+  
+
 ray_train:
   num_workers:  1
   use_gpu: True
@@ -44,22 +49,28 @@ ray_train:
   num_cpus_per_worker: 1
 
   check_frequency: 1
-  total_tokens_per_logical_batch_per_worker: 16384  # 256 * 64 
+
+
+  total_tokens_per_logical_batch_per_worker: 16384  # 256(block_size) * 64(physical_training_batch_size_per_worker) 
   physical_training_batch_size_per_worker: 64
+  physical_validate_batch_size_per_worker: 1
   num_epoch_per_worker: 64
 
-  physical_validate_batch_size_per_worker: 1
-
+  # Training output
   storage_path: ${output_dir}/gpt2
   name: "124M"
+
+  # checkpoint dir
+  best_checkpoint_dir: ${model_weights_dir}/best_checkpoint
 
   start_context: "To be, or not to be: that is the question."
   
   resume_training: False
-  best_checkpoint_dir: ${model_weights_dir}/best_checkpoint
   
+  # Optimizer
   weight_decay: 0.1
 
+  # Scheduler
   warmup_steps: 1e2
   max_steps: 5e3
   max_lr: 1e-3
@@ -68,8 +79,8 @@ ray_train:
   beta2: 0.99
   decay_lr: False
 
-  data_type: "bfloat16"
-
+  # Floating point precision
+  data_type: bfloat16
 
 
 

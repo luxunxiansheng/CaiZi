@@ -12,8 +12,9 @@
 
 from abc import ABC
 from abc import abstractmethod
-from enum import unique
+
 from typing import Dict, List
+
 
 
 import torch
@@ -28,6 +29,15 @@ class TokenProcessor(ABC):
     @abstractmethod
     def decode(self, tokens:List[int]) -> str:
         raise(NotImplementedError)
+    
+    @staticmethod
+    def create(name: str) -> "TokenProcessor":
+        if name == "CharTokenizer":
+            return CharTokenizer
+        elif name == "TikTokenizer":
+            return TikTokenizer
+        else:
+            raise ValueError("Unknown TokenProcessor")
     
 
 class CharTokenizer(TokenProcessor):

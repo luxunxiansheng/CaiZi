@@ -25,7 +25,7 @@ import ray
 
 from document_processor import TextDocumentProcessor
 from chunk_processor import ChunkProcessor
-from token_processor import TikTokenizer, TokenProcessor,CharTokenizer
+from token_processor import TokenProcessor
 from model.GPT import GPT
 from model.gpt_lr_scheduler import GPTLRScheduler
 from utility import resume_checkpoint, save_checkpoint
@@ -41,102 +41,8 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         self.cfg = cfg
         self.train_chunked_tokens = None
         self.validate_chunked_tokens = None
-
-    @staticmethod
-    def data_preprocess(
-        dataset,
-        block_size,
-        stride,
-        text_document_processor_class=TextDocumentProcessor,
-        tokenizer_class=TikTokenizer,
-        chunk_processor_class=ChunkProcessor,
-    ):
-        data_sources = [Path(item["path"]) for item in dataset]
-        text_document_paths = ray.data.from_items(data_sources)
-
-        train_text_document_processor = text_document_processor_class(section="train")
-        train_texts = text_document_paths.map(train_text_document_processor)
-
-        validate_text_document_processor = text_document_processor_class(section="validate")
-        validate_texts = text_document_paths.map(validate_text_document_processor)
-
-        tokenizer= tokenizer_class()
-        train_tokens = train_texts.map(tokenizer)
-        validate_tokens = validate_texts.map(tokenizer)
-        
-        
-        chunk_processor = chunk_processor_class(block_size=block_size, stride=stride)
-        train_chunked_tokens = train_tokens.flat_map(chunk_processor)
-        validate_chunked_tokens = validate_tokens.flat_map(chunk_processor)
-        
-        return train_chunked_tokens, validate_chunked_tokens
-
-    def self_supervised_train(self):
-        train_loop_config = {
-            "vocab_size": self.cfg["124M"]["vocab_size"],
-            "dimension_embedding": self.cfg["124M"]["dimension_embedding"],
-            "block_size": self.cfg["124M"]["block_size"],
-            "num_layers": self.cfg["124M"]["num_layers"],
-            "num_headers": self.cfg["124M"]["num_headers"],
-            "drop_rate": self.cfg["124M"]["drop_rate"],
-            "bias": self.cfg["124M"]["bias"],
-            "check_frequency": self.cfg["ray_train"]["check_frequency"],
-            "physical_training_batch_size_per_worker": self.cfg["ray_train"]["physical_training_batch_size_per_worker"],
-            "physical_validate_batch_size_per_worker": self.cfg["ray_train"]["physical_validate_batch_size_per_worker"],
-            "num_epoch_per_worker": self.cfg["ray_train"]["num_epoch_per_worker"],
-            "resume_training": self.cfg["ray_train"]["resume_training"],
-            "best_checkpoint_dir": self.cfg["ray_train"]["best_checkpoint_dir"],
-            "start_context": self.cfg["ray_train"]["start_context"],
-            "warmup_steps": self.cfg["ray_train"]["warmup_steps"],
-            "max_steps": self.cfg["ray_train"]["max_steps"],
-            "max_lr": self.cfg["ray_train"]["max_lr"],
-            "min_lr": self.cfg["ray_train"]["min_lr"],
-            "beta1": self.cfg["ray_train"]["beta1"],
-            "beta2": self.cfg["ray_train"]["beta2"],
-            "decay_lr": self.cfg["ray_train"]["decay_lr"],
-            "weight_decay": self.cfg["ray_train"]["weight_decay"],
-            "total_tokens_per_logical_batch_per_worker": self.cfg["ray_train"]["total_tokens_per_logical_batch_per_worker"],
-            "data_type": self.cfg["ray_train"]["data_type"],
-        }
-
-        dataset = self.cfg["dataset"]
-        block_size = self.cfg["124M"]["block_size"]
-        stride = self.cfg["124M"]["stride"]
-
-        train_chunked_tokens, validate_chunked_tokens = (
-            RayGPT2FundationModelTrainer.data_preprocess(
-                dataset=dataset, block_size=block_size, stride=stride
-            )
-        )
-
-        trainer = ray.train.torch.TorchTrainer(
-            train_loop_per_worker=RayGPT2FundationModelTrainer._train_workload_per_worker,
-            train_loop_config=train_loop_config,
-            datasets={
-                "train": train_chunked_tokens,
-                "validate": validate_chunked_tokens,
-            },
-            dataset_config=ray.train.DataConfig(
-                datasets_to_split=["train"], # only split the train dataset into shards
-            ),
-            scaling_config=ray.train.ScalingConfig(
-                num_workers=self.cfg["ray_train"]["num_workers"],
-                use_gpu=self.cfg["ray_train"]["use_gpu"],
-                resources_per_worker={
-                    "CPU": self.cfg["ray_train"]["num_cpus_per_worker"],
-                    "GPU": self.cfg["ray_train"]["num_gpus_per_worker"],
-                },
-            ),
-            run_config=ray.train.RunConfig(
-                storage_path=self.cfg["ray_train"]["storage_path"],
-                name=self.cfg["ray_train"]["name"],
-            ),
-        )
-        result = trainer.fit()
-        print(result)
-
-
-    def _start_ray(self):
+ 
+    def start_ray(self):
         os.environ["RAY_DEDUP_LOGS"] = "1"
         os.environ["RAY_COLOR_PREFIX"] = "1"
         os.environ["RAY_ENABLE_RECORD_ACTOR_TASK_LOGGING"] = "1"
@@ -168,6 +74,91 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         # convience for debugging
         ray.data.DataContext.get_current().execution_options.verbose_progress = False
         ray.data.DataContext.log_internal_stack_trace_to_stdout = False
+    
+    def stop_ray(self): 
+        ray.shutdown()    
+        
+    def data_preprocess(self):
+        dataset = self.cfg["dataset"]
+        block_size = self.cfg["124M"]["block_size"]
+        stride = self.cfg["124M"]["stride"]
+        tokenizer_class = TokenProcessor.create(self.cfg['ray_data']['tokenizer_class'])
+        
+        data_sources = [Path(item["path"]) for item in dataset]
+        text_document_paths = ray.data.from_items(data_sources)
+
+        train_text_document_processor = TextDocumentProcessor(section="train")
+        train_texts = text_document_paths.map(train_text_document_processor)
+
+        validate_text_document_processor = TextDocumentProcessor(section="validate")
+        validate_texts = text_document_paths.map(validate_text_document_processor)
+
+        tokenizer= tokenizer_class()
+        train_tokens = train_texts.map(tokenizer)
+        validate_tokens = validate_texts.map(tokenizer)
+        
+        chunk_processor = ChunkProcessor(block_size=block_size, stride=stride)
+        self.train_chunked_tokens = train_tokens.flat_map(chunk_processor)
+        self.validate_chunked_tokens = validate_tokens.flat_map(chunk_processor)
+
+     
+    def self_supervised_train(self):
+        train_loop_config = {
+            "vocab_size": self.cfg["124M"]["vocab_size"],
+            "dimension_embedding": self.cfg["124M"]["dimension_embedding"],
+            "block_size": self.cfg["124M"]["block_size"],
+            "num_layers": self.cfg["124M"]["num_layers"],
+            "num_headers": self.cfg["124M"]["num_headers"],
+            "drop_rate": self.cfg["124M"]["drop_rate"],
+            "bias": self.cfg["124M"]["bias"],
+            "check_frequency": self.cfg["ray_train"]["check_frequency"],
+            "physical_training_batch_size_per_worker": self.cfg["ray_train"]["physical_training_batch_size_per_worker"],
+            "physical_validate_batch_size_per_worker": self.cfg["ray_train"]["physical_validate_batch_size_per_worker"],
+            "num_epoch_per_worker": self.cfg["ray_train"]["num_epoch_per_worker"],
+            "resume_training": self.cfg["ray_train"]["resume_training"],
+            "best_checkpoint_dir": self.cfg["ray_train"]["best_checkpoint_dir"],
+            "start_context": self.cfg["ray_train"]["start_context"],
+            "warmup_steps": self.cfg["ray_train"]["warmup_steps"],
+            "max_steps": self.cfg["ray_train"]["max_steps"],
+            "max_lr": self.cfg["ray_train"]["max_lr"],
+            "min_lr": self.cfg["ray_train"]["min_lr"],
+            "beta1": self.cfg["ray_train"]["beta1"],
+            "beta2": self.cfg["ray_train"]["beta2"],
+            "decay_lr": self.cfg["ray_train"]["decay_lr"],
+            "weight_decay": self.cfg["ray_train"]["weight_decay"],
+            "total_tokens_per_logical_batch_per_worker": self.cfg["ray_train"]["total_tokens_per_logical_batch_per_worker"],
+            "data_type": self.cfg["ray_train"]["data_type"],
+          
+        }
+
+
+        trainer = ray.train.torch.TorchTrainer(
+            train_loop_per_worker=RayGPT2FundationModelTrainer._train_workload_per_worker,
+            train_loop_config=train_loop_config,
+            datasets={
+                "train": self.train_chunked_tokens,
+                "validate": self.validate_chunked_tokens,
+            },
+            dataset_config=ray.train.DataConfig(
+                datasets_to_split=["train"], # only split the train dataset into shards
+            ),
+            scaling_config=ray.train.ScalingConfig(
+                num_workers=self.cfg["ray_train"]["num_workers"],
+                use_gpu=self.cfg["ray_train"]["use_gpu"],
+                resources_per_worker={
+                    "CPU": self.cfg["ray_train"]["num_cpus_per_worker"],
+                    "GPU": self.cfg["ray_train"]["num_gpus_per_worker"],
+                },
+            ),
+            run_config=ray.train.RunConfig(
+                storage_path=self.cfg["ray_train"]["storage_path"],
+                name=self.cfg["ray_train"]["name"],
+            ),
+        )
+        result = trainer.fit()
+        print(result)
+
+
 
     @staticmethod
     def _train_workload_per_worker(cfg):
@@ -194,6 +185,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         weight_decay = cfg["weight_decay"]
         total_tokens_per_logical_batch_per_worker = cfg["total_tokens_per_logical_batch_per_worker"]
         data_type = cfg["data_type"]
+        
 
         floating_point_precision = {
             "float32": torch.float32,
