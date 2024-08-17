@@ -56,6 +56,8 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
                     "PYTHONPATH": "$PYTHONPATH:" + self.cfg.project_root + "/src",
                     "RAY_DATA_VERBOSE_PROGRESS": "1",
                     "RAY_DEBUG": "1",
+                    "PYTHONMALLOC": "malloc",
+                    
                 },
                 "working_dir": self.cfg.project_root,
                 "excludes": [
@@ -227,7 +229,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         scaler = RayGPT2FundationModelTrainer._prepare_gradient_scaler(use_amp=use_amp)
 
         # lr scheduler
-        scheduler = RayGPT2FundationModelTrainer._prepare_lr_scheduler(
+        lr_scheduler = RayGPT2FundationModelTrainer._prepare_lr_scheduler(
             warmup_steps, max_steps, max_lr, min_lr, decay_lr,optimizer
         )
 
@@ -255,6 +257,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         report_metrics = {
             "rank": rank,
             "epoch": epoch_start,
+            
             "token_total": 0,  # total tokens processed
             "token_process_time_ms": 0.0, # time in ms
             "token_per_second": 0.0,    # speed 
@@ -263,6 +266,9 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             "logical_batch_count": 0,
         
             "norm": 0.0,
+            "learning_rate": 0.0,
+            
+            "validate_batch_count": 0,
             "validate_loss": 0.0,
             "perplexity": 0.0,
             
@@ -333,7 +339,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
                 # Updates the scale for next iteration.
                 scaler.update()
                 
-                scheduler.step()
+                lr_scheduler.step()
                 optimizer.zero_grad(set_to_none=True)
 
             assert logical_batch_count > 0, "logical_batch_count must be greater than 0"
@@ -353,14 +359,15 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             report_metrics["token_per_second"] = token_per_second
 
             report_metrics["norm"] = norm.item()
+            report_metrics["learning_rate"] = optimizer.param_groups[0]["lr"]
 
             # Evaluate the model on the validation set only if the check_frequency is met 
             # and the current worker is the rank 0 worker
             if epoch % check_frequency == 0 and ray.train.get_context().get_world_rank() == 0:
                 validate_loss = 0
+                validate_batch_count = 0
                 model.eval()
                 with torch.no_grad():
-                    validate_batch_count = 0
                     for batch in validate_data_shard.iter_torch_batches(batch_size=physical_validate_batch_size_per_worker,drop_last=False,):
                         validate_batch_count += 1
                         input_ids = batch["input_ids"]
@@ -378,6 +385,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
                 metric.reset()
 
                 report_metrics["validate_loss"] = validate_loss
+                report_metrics["validate_batch_count"] = validate_batch_count
                 report_metrics["perplexity"] = perplexity
 
                 if perplexity < best_perplexity:

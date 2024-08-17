@@ -52,12 +52,12 @@ ray_train:
 
   gradient_accumulation_steps: 1
   physical_training_batch_size_per_worker: 64
-  physical_validate_batch_size_per_worker: 1
-  num_epoch_per_worker: 5000
+  physical_validate_batch_size_per_worker: 64
+  num_epoch_per_worker: 80
 
   # Training output
   storage_path: ${output_dir}/gpt2
-  name: "124M"
+  name: "shakespeare"
 
   # checkpoint dir
   best_checkpoint_dir: ${model_weights_dir}/best_checkpoint
@@ -70,8 +70,8 @@ ray_train:
   weight_decay: 0.1
 
   # Scheduler
-  warmup_steps: 1e2
-  max_steps: 5e3
+  warmup_steps: 2
+  max_steps: 80
   max_lr: 1e-3
   min_lr: 6e-5
   beta1: 0.9
