@@ -19,7 +19,6 @@ class ChunkProcessor:
     def __call__(self, data: Dict[str,List[int]])->List[Dict[str, List[int]]]:
         
         token_ids = data['ids']
-        
         data_items = []
         
         for i in range(0, len(token_ids) - self.block_size, self.stride):

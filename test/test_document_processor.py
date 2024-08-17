@@ -14,8 +14,8 @@ class TestDocumentProcessor(unittest.TestCase):
     def test_document_processor(self):
         doc_processor = TextDocumentProcessor(section="train")
 
-        raw_text = doc_processor({"item":gpt2_cfg.dataset[0]["path"]})
-        print(f"raw_text length: {len(raw_text['text'])}")
+        train_raw_text = doc_processor({"item":gpt2_cfg.dataset[0]["path"]})
+        print(f"train_raw_text length: {len(train_raw_text['text'])}")
    
 
     

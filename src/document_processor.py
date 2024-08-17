@@ -28,14 +28,14 @@ class TextDocumentProcessor(DocumentProcessor):
     
     def __call__(self, doc_path: Dict[str,str]) -> Dict[str, str]:
         with open(doc_path['item'], "r", encoding="utf-8") as f:
-            raw_text = f.read()
-        
+            raw_text = f.read()        
+     
+        raw_length = len(raw_text)
         if self.section == "train":
-            text = raw_text[:int(len(raw_text) * self.train_ratio)]
+            text = raw_text[:int(raw_length * self.train_ratio)]
         elif self.section == "validate":
-            text = raw_text[int(len(raw_text) * self.train_ratio):]
+            text = raw_text[int(raw_length * self.train_ratio):]
         else:
             raise ValueError("section must be either 'train' or 'validate'")
-        
         
         return {"text": text}

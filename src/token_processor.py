@@ -15,8 +15,6 @@ from abc import abstractmethod
 
 from typing import Dict, List
 
-
-
 import torch
 
 import tiktoken
@@ -45,6 +43,7 @@ class CharTokenizer(TokenProcessor):
         text = input_text['text']
         
         unique_chars = self.detect_unique_chars(text)
+     
         self.char2idx = {char:idx for idx,char in enumerate(unique_chars)}
         self.idx2char = {idx:char for idx,char in enumerate(unique_chars)}
         
@@ -60,7 +59,7 @@ class CharTokenizer(TokenProcessor):
     
     def detect_unique_chars(self,text)->List[str]:
         unique_chars = set(text)
-        return list(unique_chars)
+        return sorted(list(unique_chars))
 
 class TikTokenizer(TokenProcessor):
     def __init__(self,name:str="gpt2"):
