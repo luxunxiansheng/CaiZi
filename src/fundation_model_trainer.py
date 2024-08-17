@@ -24,8 +24,8 @@ import torchmetrics
 import ray
 
 from document_processor import TextDocumentProcessor
-from token_processor import TikTokenizer
 from chunk_processor import ChunkProcessor
+from token_processor import TikTokenizer, TokenProcessor,CharTokenizer
 from model.GPT import GPT
 from model.gpt_lr_scheduler import GPTLRScheduler
 from utility import resume_checkpoint, save_checkpoint
@@ -47,21 +47,25 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         dataset,
         block_size,
         stride,
+        text_document_processor_class=TextDocumentProcessor,
+        tokenizer_class=TikTokenizer,
+        chunk_processor_class=ChunkProcessor,
     ):
         data_sources = [Path(item["path"]) for item in dataset]
         text_document_paths = ray.data.from_items(data_sources)
 
-        train_text_document_processor = TextDocumentProcessor(section="train")
+        train_text_document_processor = text_document_processor_class(section="train")
         train_texts = text_document_paths.map(train_text_document_processor)
 
-        validate_text_document_processor = TextDocumentProcessor(section="validate")
+        validate_text_document_processor = text_document_processor_class(section="validate")
         validate_texts = text_document_paths.map(validate_text_document_processor)
 
-        tokenizer = TikTokenizer()
+        tokenizer= tokenizer_class()
         train_tokens = train_texts.map(tokenizer)
         validate_tokens = validate_texts.map(tokenizer)
-
-        chunk_processor = ChunkProcessor(max_length=block_size, stride=stride)
+        
+        
+        chunk_processor = chunk_processor_class(block_size=block_size, stride=stride)
         train_chunked_tokens = train_tokens.flat_map(chunk_processor)
         validate_chunked_tokens = validate_tokens.flat_map(chunk_processor)
         
@@ -87,6 +91,8 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             "max_steps": self.cfg["ray_train"]["max_steps"],
             "max_lr": self.cfg["ray_train"]["max_lr"],
             "min_lr": self.cfg["ray_train"]["min_lr"],
+            "beta1": self.cfg["ray_train"]["beta1"],
+            "beta2": self.cfg["ray_train"]["beta2"],
             "decay_lr": self.cfg["ray_train"]["decay_lr"],
             "weight_decay": self.cfg["ray_train"]["weight_decay"],
             "total_tokens_per_logical_batch_per_worker": self.cfg["ray_train"]["total_tokens_per_logical_batch_per_worker"],
@@ -182,6 +188,8 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         max_steps = cfg["max_steps"]
         max_lr = cfg["max_lr"]
         min_lr = cfg["min_lr"]
+        beta1 = cfg["beta1"]
+        beta2 = cfg["beta2"]
         decay_lr = cfg["decay_lr"]
         weight_decay = cfg["weight_decay"]
         total_tokens_per_logical_batch_per_worker = cfg["total_tokens_per_logical_batch_per_worker"]
@@ -218,7 +226,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
 
         # optimizer
         optimizer = RayGPT2FundationModelTrainer._prepare_optimizer(
-            weight_decay, max_lr, model, device
+            weight_decay, max_lr,beta1,beta2,model, device
         )
 
         # initialize a GradScaler. Enable AMP for float16.
@@ -464,7 +472,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         return scheduler
 
     @staticmethod
-    def _prepare_optimizer(weight_decay, max_lr, model, device):
+    def _prepare_optimizer(weight_decay, max_lr,beta1,beta2, model, device):
 
         # start with all of the candidate parameters
         param_dict = {pn: p for pn, p in model.named_parameters()}
@@ -496,7 +504,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         optimizer = torch.optim.AdamW(
             optim_groups,
             lr=max_lr,
-            betas=(0.9, 0.95),
+            betas=(beta1, beta2),
             eps=1e-8,
             **extra_args,
         )

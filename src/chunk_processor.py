@@ -11,8 +11,8 @@
 
 from typing import Dict, List
 class ChunkProcessor:
-    def __init__(self, max_length:int=4, stride:int=1):
-        self.max_length = max_length
+    def __init__(self, block_size:int=4, stride:int=1):
+        self.block_size = block_size
         self.stride = stride
 
 
@@ -22,9 +22,9 @@ class ChunkProcessor:
         
         data_items = []
         
-        for i in range(0, len(token_ids) - self.max_length, self.stride):
-            input_chunk = token_ids[i:i + self.max_length]
-            target_chunk = token_ids[i + 1: i + self.max_length + 1]
+        for i in range(0, len(token_ids) - self.block_size, self.stride):
+            input_chunk = token_ids[i:i + self.block_size]
+            target_chunk = token_ids[i + 1: i + self.block_size + 1]
             data_items.append({"input_ids": input_chunk, "target_ids": target_chunk})
         
         return data_items

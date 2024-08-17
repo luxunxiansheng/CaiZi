@@ -12,10 +12,10 @@ from document_processor import TextDocumentProcessor
 
 class TestDocumentProcessor(unittest.TestCase):
     def test_document_processor(self):
-        doc_processor = TextDocumentProcessor(section="validate")
+        doc_processor = TextDocumentProcessor(section="train")
 
         raw_text = doc_processor({"item":gpt2_cfg.dataset[0]["path"]})
-        print(len(raw_text))
+        print(f"raw_text length: {len(raw_text['text'])}")
    
 
     
