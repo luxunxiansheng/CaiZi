@@ -87,6 +87,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             "max_steps": self.cfg["ray_train"]["max_steps"],
             "max_lr": self.cfg["ray_train"]["max_lr"],
             "min_lr": self.cfg["ray_train"]["min_lr"],
+            "decay_lr": self.cfg["ray_train"]["decay_lr"],
             "weight_decay": self.cfg["ray_train"]["weight_decay"],
             "total_tokens_per_logical_batch_per_worker": self.cfg["ray_train"]["total_tokens_per_logical_batch_per_worker"],
             "data_type": self.cfg["ray_train"]["data_type"],
@@ -130,8 +131,9 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
 
 
     def _start_ray(self):
-        os.environ["RAY_DEDUP_LOGS"] = "0"
+        os.environ["RAY_DEDUP_LOGS"] = "1"
         os.environ["RAY_COLOR_PREFIX"] = "1"
+        os.environ["RAY_ENABLE_RECORD_ACTOR_TASK_LOGGING"] = "1"
 
         if ray.is_initialized():
             ray.shutdown()
@@ -180,6 +182,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         max_steps = cfg["max_steps"]
         max_lr = cfg["max_lr"]
         min_lr = cfg["min_lr"]
+        decay_lr = cfg["decay_lr"]
         weight_decay = cfg["weight_decay"]
         total_tokens_per_logical_batch_per_worker = cfg["total_tokens_per_logical_batch_per_worker"]
         data_type = cfg["data_type"]
@@ -227,7 +230,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
 
         # lr scheduler
         scheduler = RayGPT2FundationModelTrainer._prepare_lr_scheduler(
-            warmup_steps, max_steps, max_lr, min_lr, optimizer
+            warmup_steps, max_steps, max_lr, min_lr, decay_lr,optimizer
         )
 
         # loss function
@@ -254,7 +257,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         report_metrics = {
             "rank": rank,
             "epoch": epoch_start,
-            "token_total_": 0,  # total tokens processed
+            "token_total": 0,  # total tokens processed
             "token_process_time_ms": 0.0, # time in ms
             "token_per_second": 0.0,    # speed 
         
@@ -448,13 +451,14 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         return loss_function
 
     @staticmethod
-    def _prepare_lr_scheduler(warmup_steps, max_steps, max_lr, min_lr, optimizer):
+    def _prepare_lr_scheduler(warmup_steps, max_steps, max_lr, min_lr,decay_lr,optimizer):
         scheduler = GPTLRScheduler(
             optimizer,
             warmup_steps=warmup_steps,
             max_steps=max_steps,
             max_lr=max_lr,
             min_lr=min_lr,
+            decay_lr=decay_lr,
         )
 
         return scheduler
