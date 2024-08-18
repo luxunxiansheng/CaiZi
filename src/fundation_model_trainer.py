@@ -255,6 +255,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             
 
         report_metrics = {
+
             "rank": rank,
             "epoch": epoch_start,
             
@@ -262,8 +263,8 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             "token_process_time_ms": 0.0, # time in ms
             "token_per_second": 0.0,    # speed 
         
-            "logical_train_loss": 0.0,
-            "logical_batch_count": 0,
+            "epoch_train_loss": 0.0,
+            "epoch_batch_count": 0,
         
             "norm": 0.0,
             "learning_rate": 0.0,
@@ -279,33 +280,30 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         logical_batch_size_per_worker = physical_training_batch_size_per_worker * gradient_accumulation_steps
         
         print(f"total_tokens_per_logical_batch_per_worker: {logical_batch_size_per_worker*block_size}")
-
+        
         for epoch in range(epoch_start + 1, num_epoch_per_worker + 1):
-            token_processed = 0
-            
-            model.train()
-
             current_rank = ray.train.get_context().get_world_rank()
             report_metrics["rank"] = current_rank
             report_metrics["epoch"] = epoch
-
-            logical_train_loss = 0
-            logical_batch_count = 0
+        
+            token_processed = 0
+            epoch_train_loss = 0
+            epoch_batch_count = 0
             t0 = time.time()
 
-            for logical_batch in train_data_shard.iter_torch_batches(
-                batch_size=logical_batch_size_per_worker,
-                drop_last=False,
-                local_shuffle_buffer_size=1000,
-            ):
-                logical_batch_count += 1
+            model.train()
+            for logical_batch in train_data_shard.iter_torch_batches(batch_size=logical_batch_size_per_worker,drop_last=False,local_shuffle_buffer_size=1000,):
+             
                 logical_input_ids = logical_batch["input_ids"]
                 logical_target_ids = logical_batch["target_ids"]
 
                 
                 for step in range(gradient_accumulation_steps):
-                    physical_input_ids_in_current_step = logical_input_ids[step : step + physical_training_batch_size_per_worker]
-                    physical_target_ids_in_current_step = logical_target_ids[step : step + physical_training_batch_size_per_worker]
+                    start_index = step * physical_training_batch_size_per_worker
+                    end_index = start_index + physical_training_batch_size_per_worker
+                    
+                    physical_input_ids_in_current_step = logical_input_ids[start_index : end_index]
+                    physical_target_ids_in_current_step = logical_target_ids[start_index : end_index]
                     
                     # https://pytorch.org/tutorials/recipes/recipes/amp_recipe.html
                     with torch.autocast(device_type=device.type,dtype=floating_point_precision,enabled=use_amp,):
@@ -324,7 +322,8 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
                     scaler.scale(physical_loss).backward()
 
                     # for reporting
-                    logical_train_loss += (physical_loss.detach().item())
+                    epoch_train_loss += (physical_loss.detach().item())
+                    epoch_batch_count += 1
                     token_processed += (physical_training_batch_size_per_worker * block_size)
 
                 # Unscales the gradients of optimizer's assigned parameters in-place for clipping.
@@ -342,18 +341,15 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
                 lr_scheduler.step()
                 optimizer.zero_grad(set_to_none=True)
 
-            assert logical_batch_count > 0, "logical_batch_count must be greater than 0"
+            assert epoch_batch_count > 0, "epoch_batch_count must be greater than 0"
 
-            logical_train_loss = logical_train_loss / logical_batch_count
-            report_metrics["logical_train_loss"] = logical_train_loss
-            report_metrics["logical_batch_count"] = logical_batch_count
+            epoch_train_loss = epoch_train_loss / epoch_batch_count
+            report_metrics["epoch_train_loss"] = epoch_train_loss
+            report_metrics["epoch_batch_count"] = epoch_batch_count
 
             t1 = time.time()
             dt = t1 - t0
-
-            token_per_second = token_processed / dt
-
-            
+            token_per_second = token_processed / dt            
             report_metrics["token_total"] = token_processed
             report_metrics["token_process_time_ms"] = dt * 1000
             report_metrics["token_per_second"] = token_per_second

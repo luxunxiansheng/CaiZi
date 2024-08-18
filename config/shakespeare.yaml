@@ -70,8 +70,8 @@ ray_train:
   weight_decay: 0.1
 
   # Scheduler
-  warmup_steps: 2
-  max_steps: 80
+  warmup_steps: 100
+  max_steps: 5000
   max_lr: 1e-3
   min_lr: 6e-5
   beta1: 0.9
