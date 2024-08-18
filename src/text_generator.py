@@ -13,15 +13,15 @@ import torch
 from torch.nn import functional as F
 
 from model.GPT import GPT
-from token_processor import TikTokenizer
+from token_processor import TikTokenizer, TokenProcessor
 
 
 class TextGenerator:
-    def __init__(self, model: GPT, device: torch.device):
+    def __init__(self, model: GPT, tokenproessor:TokenProcessor,device: torch.device):
         self.model = model.to(device)
         self.device = device
 
-        self.tokenizer = TikTokenizer()
+        self.tokenizer = tokenproessor
 
     def __call__(
         self,

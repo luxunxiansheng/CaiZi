@@ -2,8 +2,6 @@ from enum import unique
 from math import e
 import unittest
 
-from torch import gt
-
 from document_processor import TextDocumentProcessor
 from token_processor import CharTokenizer, TikTokenizer, TokenProcessor
 from config import gpt2_cfg
