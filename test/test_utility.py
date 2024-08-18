@@ -128,8 +128,8 @@ class RayClassTest(unittest.TestCase):
 
 class UtilityTest(unittest.TestCase):
     def setUp(self) -> None:
-        self.model_size = "124M"
-        self.model_dir = cfg["124M"]["openai_gpt_dir"] + "/" + self.model_size
+        self.model_size = "model"
+        self.model_dir = cfg["model"]["openai_gpt_dir"] + "/" + self.model_size
 
     #@unittest.skip("skip")
     def test_load_weights_to_gpt(self):
@@ -153,7 +153,7 @@ class UtilityTest(unittest.TestCase):
         
             # n_layer, n_head and n_embd are determined from model_type
         config = {
-            "gpt2": dict(n_layer=12, n_head=12, n_embd=768),  # 124M params
+            "gpt2": dict(n_layer=12, n_head=12, n_embd=768),  # model params
             "gpt2-medium": dict(n_layer=24, n_head=16, n_embd=1024),  # 350M params
             "gpt2-large": dict(n_layer=36, n_head=20, n_embd=1280),  # 774M params
             "gpt2-xl": dict(n_layer=48, n_head=25, n_embd=1600),  # 1558M params

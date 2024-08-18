@@ -24,10 +24,10 @@ dataset:
 
 train_ratio: 0.9
 
-124M:
-  vocab_size: 65 # GPT-2 vocab_size of 50257, padded up to nearest multiple of 64 for efficiency
+model:
+  vocab_size: 65
   block_size: 256 # maximum length of the text to be generated
-  stride: 256 #  window stride for the dataset. 
+  stride: 256 #  window stride for the dataset.
   dimension_embedding: 384 # embedding dimension
   num_layers: 6 # number of layers
   num_headers: 6 # number of heads
@@ -36,14 +36,16 @@ train_ratio: 0.9
 
   openai_gpt_dir: ${model_weights_dir}/openai
 
-
 ray_data:
   # Tokenizer
-  tokenizer_class : CharTokenizer
-  
+  tokenizer_class:
+    name: CharTokenizer
+    args:
+      unique_chars: ["\n", ' ', '!', '$', '&', "'", ',', '-', '.', '3', ':', ';', '?', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
+        
 
 ray_train:
-  num_workers:  1
+  num_workers: 1
   use_gpu: True
   num_gpus_per_worker: 1
   num_cpus_per_worker: 1
@@ -63,9 +65,9 @@ ray_train:
   best_checkpoint_dir: ${model_weights_dir}/best_checkpoint
 
   start_context: "To be, or not to be: that is the question."
-  
+
   resume_training: False
-  
+
   # Optimizer
   weight_decay: 0.1
 
@@ -80,14 +82,3 @@ ray_train:
 
   # Floating point precision
   data_type: bfloat16
-
-
-
- 
-  
-
-  
-  
-  
-  
-

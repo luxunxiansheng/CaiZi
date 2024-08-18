@@ -82,10 +82,6 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         
     def data_preprocess(self):
         dataset = self.cfg["dataset"]
-        block_size = self.cfg["124M"]["block_size"]
-        stride = self.cfg["124M"]["stride"]
-        tokenizer_class = TokenProcessor.create(self.cfg['ray_data']['tokenizer_class'])
-        
         data_sources = [Path(item["path"]) for item in dataset]
         text_document_paths = ray.data.from_items(data_sources)
 
@@ -95,10 +91,14 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         validate_text_document_processor = TextDocumentProcessor(section="validate")
         validate_texts = text_document_paths.map(validate_text_document_processor)
 
-        tokenizer= tokenizer_class()
+        tokenizer_class = TokenProcessor.create(self.cfg['ray_data']['tokenizer_class']['name'])
+        tokenizer_args =  self.cfg['ray_data']['tokenizer_class']['args']
+        tokenizer= tokenizer_class(**tokenizer_args)
         train_tokens = train_texts.map(tokenizer)
         validate_tokens = validate_texts.map(tokenizer)
         
+        block_size = self.cfg["model"]["block_size"]
+        stride = self.cfg["model"]["stride"]
         chunk_processor = ChunkProcessor(block_size=block_size, stride=stride)
         self.train_chunked_tokens = train_tokens.flat_map(chunk_processor)
         self.validate_chunked_tokens = validate_tokens.flat_map(chunk_processor)
@@ -106,13 +106,13 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
      
     def self_supervised_train(self):
         train_loop_config = {
-            "vocab_size": self.cfg["124M"]["vocab_size"],
-            "dimension_embedding": self.cfg["124M"]["dimension_embedding"],
-            "block_size": self.cfg["124M"]["block_size"],
-            "num_layers": self.cfg["124M"]["num_layers"],
-            "num_headers": self.cfg["124M"]["num_headers"],
-            "drop_rate": self.cfg["124M"]["drop_rate"],
-            "bias": self.cfg["124M"]["bias"],
+            "vocab_size": self.cfg["model"]["vocab_size"],
+            "dimension_embedding": self.cfg["model"]["dimension_embedding"],
+            "block_size": self.cfg["model"]["block_size"],
+            "num_layers": self.cfg["model"]["num_layers"],
+            "num_headers": self.cfg["model"]["num_headers"],
+            "drop_rate": self.cfg["model"]["drop_rate"],
+            "bias": self.cfg["model"]["bias"],
             "check_frequency": self.cfg["ray_train"]["check_frequency"],
             "gradient_accumulation_steps":self.cfg["ray_train"]["gradient_accumulation_steps"],
             "physical_training_batch_size_per_worker": self.cfg["ray_train"]["physical_training_batch_size_per_worker"],
@@ -255,8 +255,9 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             
 
         report_metrics = {
-
+            
             "rank": rank,
+            "global_step": 0,
             "epoch": epoch_start,
             
             "token_total": 0,  # total tokens processed
@@ -275,11 +276,14 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             
             "best_epoch": best_epoch,
             "best_perplexity": best_perplexity,
+            "validate_loss_at_best_perplexity": 0.0,
         }
 
         logical_batch_size_per_worker = physical_training_batch_size_per_worker * gradient_accumulation_steps
         
         print(f"total_tokens_per_logical_batch_per_worker: {logical_batch_size_per_worker*block_size}")
+        
+        global_step = 0
         
         for epoch in range(epoch_start + 1, num_epoch_per_worker + 1):
             current_rank = ray.train.get_context().get_world_rank()
@@ -296,7 +300,6 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
              
                 logical_input_ids = logical_batch["input_ids"]
                 logical_target_ids = logical_batch["target_ids"]
-
                 
                 for step in range(gradient_accumulation_steps):
                     start_index = step * physical_training_batch_size_per_worker
@@ -324,6 +327,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
                     # for reporting
                     epoch_train_loss += (physical_loss.detach().item())
                     epoch_batch_count += 1
+                    global_step += 1
                     token_processed += (physical_training_batch_size_per_worker * block_size)
 
                 # Unscales the gradients of optimizer's assigned parameters in-place for clipping.
@@ -346,6 +350,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             epoch_train_loss = epoch_train_loss / epoch_batch_count
             report_metrics["epoch_train_loss"] = epoch_train_loss
             report_metrics["epoch_batch_count"] = epoch_batch_count
+            report_metrics["global_step"] = global_step
 
             t1 = time.time()
             dt = t1 - t0
@@ -390,6 +395,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
 
                     report_metrics["best_epoch"] = best_epoch
                     report_metrics["best_perplexity"] = best_perplexity
+                    report_metrics["validate_loss_at_best_perplexity"] = validate_loss
 
                     # In standard DDP training, where the model is the same across all ranks,
                     # so only the global rank 0 worker needs to save and report the checkpoint

@@ -39,25 +39,23 @@ class TokenProcessor(ABC):
     
 
 class CharTokenizer(TokenProcessor):
-    def __call__(self, input_text:Dict[str,str]) -> Dict[str, List[int]]:
-        text = input_text['text']
-        
-        unique_chars = self.detect_unique_chars(text)
-     
+    def __init__(self,unique_chars:List[str]):
+        assert len(unique_chars) > 0, "Ensure you have at least one unique character"
         self.char2idx = {char:idx for idx,char in enumerate(unique_chars)}
         self.idx2char = {idx:char for idx,char in enumerate(unique_chars)}
-        
+    
+    def __call__(self, input_text:Dict[str,str]) -> Dict[str, List[int]]:
+        text = input_text['text']     
+        assert self.char2idx is not None, "Ensure you have at least one unique character"   
         integers = [self.char2idx[char] for char in text]
         return {"ids": integers}
         
     def decode(self, input_ids:List[int]) -> str:
+        assert self.idx2char is not None, "Ensure you have at least one unique character"
         return "".join([self.idx2char[idx] for idx in input_ids])
-        
-    def encode(self, text:str) -> torch.Tensor:
-        encoded = [self.char2idx[char] for char in text]
-        return  torch.tensor(encoded).unsqueeze(0)
-    
-    def detect_unique_chars(self,text)->List[str]:
+   
+    @staticmethod
+    def detect_unique_chars(text)->List[str]:
         unique_chars = set(text)
         return sorted(list(unique_chars))
 
@@ -68,7 +66,6 @@ class TikTokenizer(TokenProcessor):
     def __call__(self, input_text:Dict[str,str]) -> Dict[str, List[int]]:        
         text = input_text['text']        
         integers = self.tokenizer.encode(text,allowed_special={"<|endoftext|>"})
-        integers.append(self.tokenizer.eot_token)
         return {"ids": integers}
         
     def decode(self, input_ids:List[int]) -> str:       

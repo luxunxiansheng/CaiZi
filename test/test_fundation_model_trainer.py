@@ -1,48 +1,50 @@
 import unittest
 
+from hypothesis import target
+
+
 from config import gpt2_cfg as cfg 
+from document_processor import TextDocumentProcessor
 from fundation_model_trainer import RayGPT2FundationModelTrainer
+from token_processor import CharTokenizer, TokenProcessor
 
 class TestGPT2FundationModelTrainer(unittest.TestCase):
     def setUp(self) -> None:
+        
         self.trainer = RayGPT2FundationModelTrainer(cfg)
-    
-    
-    #@unittest.skip("skip training test")
-    def test_data_process(self):
         self.trainer.start_ray()
         self.trainer.data_preprocess()
-       
-        validate_dataset = self.trainer.validate_chunked_tokens
-        
-        validate_token_count = 0
-        for row in validate_dataset.iter_rows():
-            validate_token_count = validate_token_count + len(row["input_ids"])
-            
-        
-            
-        train_dataset = self.trainer.train_chunked_tokens
-        train_token_count = 0
-        for row in train_dataset.iter_rows():
-            train_token_count = train_token_count + len(row["input_ids"])
-        
-        print(f"tokens: {train_token_count}")
-        print(f"tokens: {validate_token_count}")
-        
-        print(f"total tokens: {train_token_count + validate_token_count}")
-        
-        
+    
+    def tearDown(self) -> None:
         self.trainer.stop_ray()
-
+    
+    
     @unittest.skip("skip training test")
+    def test_data_process(self):
+       
+        tokenizer_class = TokenProcessor.create(cfg['ray_data']['tokenizer_class']['name'])
+        tokenizer_args =  cfg['ray_data']['tokenizer_class']['args']
+        tokenizer= tokenizer_class(**tokenizer_args)
+    
+        validate_dataset = self.trainer.validate_chunked_tokens
+    
+    
+        for row in validate_dataset.iter_rows():
+            input_ids = row["input_ids"]
+            target_ids = row["target_ids"]
+            
+            print("-----------------------------")
+            print(tokenizer.decode(input_ids))
+            print("..............................")
+            print(tokenizer.decode(target_ids))
+            print("*******************************")
+
+    #@unittest.skip("skip training test")
     def test_train(self):
-        self.trainer.start_ray()
-        self.trainer.data_preprocess()
-        
+
         self.trainer.self_supervised_train()
         
-        self.trainer.stop_ray()
-        
+
         
 
     

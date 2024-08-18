@@ -1,65 +1,47 @@
+from enum import unique
 from math import e
 import unittest
 
+from torch import gt
+
 from document_processor import TextDocumentProcessor
-from token_processor import CharTokenizer, TikTokenizer
+from token_processor import CharTokenizer, TikTokenizer, TokenProcessor
 from config import gpt2_cfg
 
 @unittest.skip("Skip this test")
 class TestTokenProcessor(unittest.TestCase):
-    def setUp(self) -> None:
-        self.token_processor = TikTokenizer()
-        
-    def test_encode_and_decoder(self):
-        
-        raw_text= {"text": "Hello, do you like tea? <|endoftext|> In the sunlit terraces of someunknownPlace."}
-        
-        encoded_text = self.token_processor(raw_text)
-        print(len(encoded_text["ids"]))
-        
-        
-        strings = self.token_processor.decode(encoded_text["ids"])
 
-        print(strings)
-        
-    def test_decode(self):
-        pass
 
-class TestCharTokenizer(unittest.TestCase):
-    def setUp(self) -> None:
-        
-
-        self.token_processor = CharTokenizer()
-        
-    def test_encode_and_decoder(self):
-        
-        doc_processor = TextDocumentProcessor(section="train")
-
-        train_raw_text = doc_processor({"item":gpt2_cfg.dataset[0]["path"]})
-        print(f"train_raw_text length: {len(train_raw_text['text'])}")
-        
-        
-        encoded_text = self.token_processor(train_raw_text)
-        print(len(encoded_text["ids"]))
-        
-        # print(self.token_processor.decode(encoded_text["ids"]))
-
-class TestTokenProcessor(unittest.TestCase):
-    def setUp(self) -> None:
-        pass
-    
     def test_create(self):
-        token_processor_class= CharTokenizer.create("CharTokenizer")
-        char_token_processor = token_processor_class()
         
+        token_processor_class_name = gpt2_cfg["ray_data"]['tokenizer_class']['name']
+        token_processor_args = gpt2_cfg["ray_data"]['tokenizer_class']['args']
+        token_processor_class= TokenProcessor.create(token_processor_class_name)
+        token_processor= token_processor_class(**token_processor_args)
         
-   
+        raw_text= {"text": "Hello,In the sunlit terraces of someunknownPlace."}
         
-    def test_call(self):
-        pass
-    
-    def test_decode(self):
-        pass
+        encoded_text = token_processor(raw_text)
+        print((encoded_text["ids"]))
+        
+ 
+
+#@unittest.skip("Skip this test")
+class TestCharTokenizer(unittest.TestCase):
+    def test_encode_and_decoder(self):
+        
+        doc_processor = TextDocumentProcessor(section="validate")
+        validate_raw_text = doc_processor({"item":gpt2_cfg.dataset[0]["path"]})
+        
+        token_processor_args = gpt2_cfg["ray_data"]['tokenizer_class']['args']
+
+        token_processor = CharTokenizer(**token_processor_args)
+        encoded_text = token_processor(validate_raw_text)
+        print(len(encoded_text["ids"]))
+        
+        print(token_processor.decode(encoded_text["ids"]))
+
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -11,7 +11,7 @@
 
 from typing import Dict, List
 class ChunkProcessor:
-    def __init__(self, block_size:int=4, stride:int=1):
+    def __init__(self, block_size:int=4, stride:int=4):
         self.block_size = block_size
         self.stride = stride
 
