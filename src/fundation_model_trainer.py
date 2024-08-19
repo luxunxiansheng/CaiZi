@@ -15,12 +15,12 @@ import inspect
 from pathlib import Path
 
 import time
+from typing import Optional
 
 import ray.train
 import ray.train.torch
 import torch
 import torchmetrics
-
 import ray
 
 from document_processor import TextDocumentProcessor
@@ -37,10 +37,10 @@ class FundationModelTrainer(ABC):
         pass
 
 class RayGPT2FundationModelTrainer(FundationModelTrainer):
-    def __init__(self, cfg):
-        self.cfg = cfg
-        self.train_chunked_tokens = None
-        self.validate_chunked_tokens = None
+    def __init__(self, cfg: dict) -> None:
+        self.cfg: dict = cfg
+        self.train_chunked_tokens: Optional[ray.data.Dataset] = None
+        self.validate_chunked_tokens: Optional[ray.data.Dataset] = None
  
     def start_ray(self):
         os.environ["RAY_DEDUP_LOGS"] = "1"
@@ -55,7 +55,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
                 "env_vars": {
                     "PYTHONPATH": "$PYTHONPATH:" + self.cfg.project_root + "/src",
                     "RAY_DATA_VERBOSE_PROGRESS": "1",
-                    #"RAY_DEBUG": "0",
+                    "RAY_DEBUG": self.cfg.ray_debug,
                     "PYTHONMALLOC": "malloc",
                     
                 },
@@ -163,7 +163,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
 
 
     @staticmethod
-    def _train_workload_per_worker(cfg):
+    def _train_workload_per_worker(cfg: dict):
         vocab_size = cfg["vocab_size"]
         dimension_embedding = cfg["dimension_embedding"]
         block_size = cfg["block_size"]
@@ -315,6 +315,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
                     physical_input_ids_in_current_step = logical_input_ids[start_index : end_index]
                     physical_target_ids_in_current_step = logical_target_ids[start_index : end_index]
                     
+                    
                     # https://pytorch.org/tutorials/recipes/recipes/amp_recipe.html
                     with torch.autocast(device_type=device.type,dtype=floating_point_precision,enabled=use_amp,):
                         logits = model(physical_input_ids_in_current_step)
@@ -437,12 +438,15 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             ray.train.report(metrics=report_metrics)
 
     @staticmethod
-    def _prepare_gradient_scaler(use_amp=True):
+    def _prepare_gradient_scaler(use_amp: bool = True) -> torch.amp.GradScaler:
         return torch.amp.GradScaler(enabled=use_amp)
 
     @staticmethod
-    def _resume_training(checkpoint_dir, model, optimizer,scaler, device):
-        
+    def _resume_training(checkpoint_dir: str, 
+                         model: torch.nn.Module, 
+                         optimizer: torch.optim.Optimizer,
+                         scaler: torch.amp.GradScaler, 
+                         device: torch.device) -> tuple:
         epoch, perplexity = utility.load_checkpoint(
             model, optimizer, scaler, checkpoint_dir,str(device)
         )
@@ -450,7 +454,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         return epoch,perplexity
 
     @staticmethod
-    def _prepare_metric(device):
+    def _prepare_metric(device: torch.device):
         metric = torchmetrics.text.Perplexity().to(device)
         return metric
 
@@ -460,7 +464,12 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         return loss_function
 
     @staticmethod
-    def _prepare_lr_scheduler(warmup_steps, max_steps, max_lr, min_lr,decay_lr,optimizer):
+    def _prepare_lr_scheduler(warmup_steps: int, 
+                              max_steps: int, 
+                              max_lr: float, 
+                              min_lr: float,
+                              decay_lr: bool,
+                              optimizer: torch.optim.Optimizer) -> GPTLRScheduler:
         scheduler = GPTLRScheduler(
             optimizer,
             warmup_steps=warmup_steps,
@@ -473,7 +482,12 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         return scheduler
 
     @staticmethod
-    def _prepare_optimizer(weight_decay, max_lr,beta1,beta2, model, device):
+    def _prepare_optimizer(weight_decay: float,
+                           max_lr: float,
+                           beta1: float,
+                           beta2: float, 
+                           model: torch.nn.Module, 
+                           device: torch.device) -> torch.optim.Optimizer:
 
         # start with all of the candidate parameters
         param_dict = {pn: p for pn, p in model.named_parameters()}
@@ -520,13 +534,13 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
 
     @staticmethod
     def _prepare_model(
-        vocab_size,
-        dimension_embedding,
-        block_size,
-        num_layers,
-        num_headers,
-        drop_rate,
-        bias,
+        vocab_size: int,
+        dimension_embedding: int,
+        block_size: int,
+        num_layers: int,
+        num_headers: int,
+        drop_rate: float,
+        bias: bool,
     ):
         model = GPT(
             vocab_size,

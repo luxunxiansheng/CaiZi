@@ -39,8 +39,7 @@ class TestGPT2FundationModelTrainer(unittest.TestCase):
 
     #@unittest.skip("skip training test")
     def test_train(self):
-
-        self.trainer.self_supervised_train()
+       self.trainer.self_supervised_train()
         
 
         

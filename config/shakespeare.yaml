@@ -7,6 +7,8 @@ dataset:
   - name: "tiny_shakespeare"
     path: "/workspaces/CaiZi/dataset/tiny_shakespeare.txt"
 
+ray_debug: "0"   # "0": no debug, "1": debug
+
 model:
   vocab_size: 65
   block_size: 256 # maximum length of the text to be generated
@@ -40,7 +42,7 @@ ray_train:
   gradient_accumulation_steps: 1
   physical_training_batch_size_per_worker: 64
   physical_validate_batch_size_per_worker: 64
-  num_epoch_per_worker: 80
+  num_epoch_per_worker: 30
 
   # Training output
   storage_path: ${output_dir}/gpt2
