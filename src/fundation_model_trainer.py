@@ -121,6 +121,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             "num_epoch_per_worker": self.cfg["ray_train"]["num_epoch_per_worker"],
             "resume_training": self.cfg["ray_train"]["resume_training"],
             "best_checkpoint_dir": self.cfg["ray_train"]["best_checkpoint_dir"],
+            "latest_checkpoint_dir": self.cfg["ray_train"]["latest_checkpoint_dir"],
             "start_context": self.cfg["ray_train"]["start_context"],
             "warmup_steps": self.cfg["ray_train"]["warmup_steps"],
             "max_steps": self.cfg["ray_train"]["max_steps"],
@@ -177,6 +178,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         num_epoch_per_worker = cfg["num_epoch_per_worker"]
         resume_training = cfg["resume_training"]
         best_checkpoint_dir = cfg["best_checkpoint_dir"]
+        latest_checkpoint_dir = cfg["latest_checkpoint_dir"]
         warmup_steps = cfg["warmup_steps"]
         max_steps = cfg["max_steps"]
         max_lr = cfg["max_lr"]
@@ -246,15 +248,17 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         best_epoch = 0
 
         if resume_training:
-            best_epoch,best_perplexity  = (
-                RayGPT2FundationModelTrainer._resume_training(best_checkpoint_dir, 
+            epoch,perplexity  = (
+                RayGPT2FundationModelTrainer._resume_training(latest_checkpoint_dir, 
                                                               model, 
                                                               optimizer,
                                                               scaler,
                                                               device)
                 )
             
-            epoch_start = best_epoch
+            print(f"Resuming training from epoch {epoch} with  perplexity {perplexity}")
+            
+            epoch_start = epoch
             
 
         report_metrics = {
@@ -365,9 +369,8 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             report_metrics["norm"] = norm.item()
             report_metrics["learning_rate"] = optimizer.param_groups[0]["lr"]
 
-            # Evaluate the model on the validation set only if the check_frequency is met 
-            # and the current worker is the rank 0 worker
-            if epoch % check_frequency == 0 and ray.train.get_context().get_world_rank() == 0:
+            # Evaluate the model on the validation set only the current worker is the rank 0 worker
+            if  ray.train.get_context().get_world_rank() == 0:
                 validate_loss = 0
                 validate_batch_count = 0
                 model.eval()
@@ -391,6 +394,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
                 report_metrics["validate_loss"] = validate_loss
                 report_metrics["validate_batch_count"] = validate_batch_count
                 report_metrics["perplexity"] = perplexity
+
 
                 if perplexity < best_perplexity:
                     best_perplexity = perplexity
@@ -416,6 +420,20 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
                         best_checkpoint_dir,
                     )
 
+                # save the latest checkpoint periodically
+                if epoch % check_frequency == 0:
+                    if not os.path.exists(latest_checkpoint_dir):
+                        os.makedirs(latest_checkpoint_dir)
+
+                    utility.save_checkpoint(
+                        model,
+                        optimizer,
+                        scaler,
+                        epoch,
+                        perplexity,
+                        latest_checkpoint_dir,
+                    )
+
             ray.train.report(metrics=report_metrics)
 
     @staticmethod
@@ -423,13 +441,13 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         return torch.amp.GradScaler(enabled=use_amp)
 
     @staticmethod
-    def _resume_training(best_checkpoint_dir, model, optimizer,scaler, device):
+    def _resume_training(checkpoint_dir, model, optimizer,scaler, device):
         
-        best_epoch, best_perplexity = utility.load_checkpoint(
-            model, optimizer, scaler, best_checkpoint_dir,str(device)
+        epoch, perplexity = utility.load_checkpoint(
+            model, optimizer, scaler, checkpoint_dir,str(device)
         )
         
-        return best_epoch,best_perplexity
+        return epoch,perplexity
 
     @staticmethod
     def _prepare_metric(device):

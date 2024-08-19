@@ -7,8 +7,6 @@ dataset:
   - name: "tiny_shakespeare"
     path: "/workspaces/CaiZi/dataset/tiny_shakespeare.txt"
 
-
-
 model:
   vocab_size: 65
   block_size: 256 # maximum length of the text to be generated
@@ -36,7 +34,8 @@ ray_train:
   num_gpus_per_worker: 1
   num_cpus_per_worker: 1
 
-  check_frequency: 1
+  resume_training: True
+  check_frequency: 4
 
   gradient_accumulation_steps: 1
   physical_training_batch_size_per_worker: 64
@@ -49,10 +48,11 @@ ray_train:
 
   # checkpoint dir
   best_checkpoint_dir: ${model_weights_dir}/best_checkpoint
+  latest_checkpoint_dir: ${model_weights_dir}/latest_checkpoint
 
   start_context: "To be, or not to be: that is the question."
 
-  resume_training: False
+  
 
   # Optimizer
   weight_decay: 0.1

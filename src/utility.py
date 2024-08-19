@@ -52,15 +52,15 @@ def load_checkpoint(
     model: Module,
     optimizer: Optimizer,
     scaler: GradScaler,
-    best_checkpoint_dir: str,
+    checkpoint_dir: str,
     device: str,
 ) -> tuple[int, float]:
     
     epoch = 0
     perplexity = float("inf")
  
-    if os.path.exists(best_checkpoint_dir):
-        checkpoint = ray.train.Checkpoint.from_directory(best_checkpoint_dir)
+    if os.path.exists(checkpoint_dir):
+        checkpoint = Checkpoint.from_directory(checkpoint_dir)
     else:
         checkpoint = None
 
