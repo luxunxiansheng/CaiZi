@@ -34,7 +34,7 @@ ray_train:
   num_gpus_per_worker: 1
   num_cpus_per_worker: 1
 
-  resume_training: True
+  resume_training: False
   check_frequency: 4
 
   gradient_accumulation_steps: 1
@@ -64,7 +64,7 @@ ray_train:
   min_lr: 6e-5
   beta1: 0.9
   beta2: 0.99
-  decay_lr: False
+  decay_lr: True
 
   # Floating point precision
   data_type: bfloat16
