@@ -84,11 +84,12 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         dataset = self.cfg["dataset"]
         data_sources = [Path(item["path"]) for item in dataset]
         text_document_paths = ray.data.from_items(data_sources)
+        train_ratio = self.cfg["ray_data"]["train_ratio"]
 
-        train_text_document_processor = TextDocumentProcessor(section="train")
+        train_text_document_processor = TextDocumentProcessor(section="train",train_ratio=train_ratio)
         train_texts = text_document_paths.map(train_text_document_processor)
 
-        validate_text_document_processor = TextDocumentProcessor(section="validate")
+        validate_text_document_processor = TextDocumentProcessor(section="validate",train_ratio=train_ratio)
         validate_texts = text_document_paths.map(validate_text_document_processor)
 
         tokenizer_class = TokenProcessor.create(self.cfg['ray_data']['tokenizer_class']['name'])

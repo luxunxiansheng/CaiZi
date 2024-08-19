@@ -4,25 +4,10 @@ output_dir: ${project_root}/outputs
 model_weights_dir: ${project_root}/model_weights
 
 dataset:
-  # - name: "xjtu_1"
-  #   path: "/workspaces/CaiZi/dataset/xjtu_1.txt"
-
-  # - name: "qi_wang"
-  #   path: "/workspaces/CaiZi/dataset/qi_wang.txt"
-
-  # - name: "shu_wang"
-  #   path: "/workspaces/CaiZi/dataset/shu_wang.txt"
-
-  # - name: "hai_zi_wang"
-  #   path: "/workspaces/CaiZi/dataset/hai_zi_wang.txt"
-
-  #- name: "the_verdict"
-  #  path: "/workspaces/CaiZi/dataset/the_verdict.txt"
-
   - name: "tiny_shakespeare"
     path: "/workspaces/CaiZi/dataset/tiny_shakespeare.txt"
 
-train_ratio: 0.9
+
 
 model:
   vocab_size: 65
@@ -37,6 +22,7 @@ model:
   openai_gpt_dir: ${model_weights_dir}/openai
 
 ray_data:
+  train_ratio: 0.9
   # Tokenizer
   tokenizer_class:
     name: CharTokenizer
