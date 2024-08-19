@@ -22,8 +22,6 @@ dataset:
   - name: "tiny_shakespeare"
     path: "/workspaces/CaiZi/dataset/tiny_shakespeare.txt"
 
-train_ratio: 0.9
-
 model:
   vocab_size: 50304 # GPT-2 vocab_size of 50257, padded up to nearest multiple of 64 for efficiency
   block_size: 1024 # maximum length of the text to be generated
@@ -37,26 +35,37 @@ model:
   openai_gpt_dir: ${model_weights_dir}/openai
 
 
+ray_data:
+  train_ratio: 0.9
+  # Tokenizer
+  tokenizer_class:
+    name: Tokenizer
+    args:
+      unique_chars: 
+
 ray_train:
   num_workers:  1
   use_gpu: True
   num_gpus_per_worker: 1
   num_cpus_per_worker: 1
 
-  check_frequency: 1
-  total_tokens_per_logical_batch_per_worker: 8192 # 2^19,~0.5M, in number of tokens
-  physical_training_batch_size_per_worker: 8
-  num_epoch_per_worker: 40
+  resume_training: False
+  check_frequency: 4
 
-  physical_validate_batch_size_per_worker: 1
+  gradient_accumulation_steps: 1
+  physical_training_batch_size_per_worker: 64
+  physical_validate_batch_size_per_worker: 64
+  num_epoch_per_worker: 80
 
   storage_path: ${output_dir}/gpt2
-  name: "model"
+
+  name: "124M"  #Name of the trial or experiment
+
+    # checkpoint dir
+  best_checkpoint_dir: ${model_weights_dir}/best_checkpoint
+  latest_checkpoint_dir: ${model_weights_dir}/latest_checkpoint
 
   start_context: "To be, or not to be: that is the question."
-  
-  resume_training: False
-  best_checkpoint_dir: ${model_weights_dir}/best_checkpoint
   
   weight_decay: 0.1
 
@@ -66,7 +75,7 @@ ray_train:
   min_lr: 6e-5
   beta1: 0.9
   beta2: 0.95
-  decay_lr: False
+  decay_lr: True
 
   data_type: "bfloat16"
 
