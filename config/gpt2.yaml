@@ -41,7 +41,8 @@ ray_data:
   tokenizer_class:
     name: Tokenizer
     args:
-      unique_chars: 
+      name: "gpt2"
+      
 
 ray_train:
   num_workers:  1
