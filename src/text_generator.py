@@ -13,7 +13,7 @@ import torch
 from torch.nn import functional as F
 
 from model.GPT import GPT
-from token_processor import TikTokenizer, TokenProcessor
+from token_processor import TokenProcessor
 
 
 class TextGenerator:

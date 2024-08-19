@@ -13,12 +13,11 @@ from text_generator import TextGenerator
 from utility import (
     load_hf_weights_into_gpt,
     save_checkpoint,
-    resume_checkpoint,
+    load_checkpoint,
 )
 
 from model.GPT import GPT
 import unittest
-
 
 @unittest.skip("skip")
 class RayClassTest(unittest.TestCase):
@@ -34,6 +33,13 @@ class RayClassTest(unittest.TestCase):
     def tearDownClass(cls):
         ray.shutdown()
 
+
+#@unittest.skip("skip")
+class UtilityTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.model_size = "model"
+        self.model_dir = cfg["model"]["openai_gpt_dir"] + "/" + self.model_size
+        
     def test_save_checkpoint(self):
         vocab_size = 50257
         dimension_embedding = 768
@@ -65,7 +71,7 @@ class RayClassTest(unittest.TestCase):
 
             self.assertTrue(checkpoint)
 
-    def test_resume_checkpoint(self):
+    def test_load_checkpoint(self):
 
         vocab_size = 50257
         dimension_embedding = 768
@@ -95,41 +101,10 @@ class RayClassTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_checkpoint_dir:
             save_checkpoint(model, optimizer, scaler, epoch, perplexity, temp_checkpoint_dir)
 
-            # Create the checkpoint, which is a reference to the directory.
-            checkpoint = ray.train.Checkpoint.from_directory(temp_checkpoint_dir)
-
-            vocab_size = 50257
-            dimension_embedding = 768
-            block_size = 1024
-            num_header = 12
-            n_layers = 12
-            drop_rate = 0.1
-            bias = False
-
-            model = GPT(
-                vocab_size,
-                dimension_embedding,
-                block_size,
-                n_layers,
-                num_header,
-                drop_rate,
-                bias,
-            )
-            optimizer = torch.optim.AdamW(
-                model.parameters(), lr=0.0004, weight_decay=0.1
-            )
-            scaler = torch.amp.GradScaler()
-
-            epoch_start, perplexity = resume_checkpoint(model, optimizer,scaler, checkpoint,device)
+            epoch_start, perplexity = load_checkpoint(model, optimizer,scaler,temp_checkpoint_dir,device)
 
             self.assertEqual(epoch_start, 5)
             self.assertEqual(perplexity, 123.4)
-
-
-class UtilityTest(unittest.TestCase):
-    def setUp(self) -> None:
-        self.model_size = "model"
-        self.model_dir = cfg["model"]["openai_gpt_dir"] + "/" + self.model_size
 
     #@unittest.skip("skip")
     def test_load_weights_to_gpt(self):
@@ -178,7 +153,7 @@ class UtilityTest(unittest.TestCase):
         
        
         # Create a TextGenerator instance
-        text_generator = TextGenerator(model, device=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+        text_generator = TextGenerator(model,tokenizer, device=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
         
         with torch.no_grad():
             with ctx:

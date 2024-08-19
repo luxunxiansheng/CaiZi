@@ -53,6 +53,10 @@ class CharTokenizer(TokenProcessor):
     def decode(self, input_ids:List[int]) -> str:
         assert self.idx2char is not None, "Ensure you have at least one unique character"
         return "".join([self.idx2char[idx] for idx in input_ids])
+    
+    def encode(self, text:str) -> torch.Tensor:
+        encoded = [self.char2idx[char] for char in text]
+        return  torch.tensor(encoded).unsqueeze(0)
    
     @staticmethod
     def detect_unique_chars(text)->List[str]:

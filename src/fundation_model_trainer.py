@@ -28,7 +28,7 @@ from chunk_processor import ChunkProcessor
 from token_processor import TokenProcessor
 from model.GPT import GPT
 from model.gpt_lr_scheduler import GPTLRScheduler
-from utility import resume_checkpoint, save_checkpoint
+import  utility 
 
 
 class FundationModelTrainer(ABC):
@@ -55,7 +55,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
                 "env_vars": {
                     "PYTHONPATH": "$PYTHONPATH:" + self.cfg.project_root + "/src",
                     "RAY_DATA_VERBOSE_PROGRESS": "1",
-                    "RAY_DEBUG": "1",
+                    #"RAY_DEBUG": "0",
                     "PYTHONMALLOC": "malloc",
                     
                 },
@@ -246,13 +246,15 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         best_epoch = 0
 
         if resume_training:
-            epoch_start, best_epoch,best_perplexity  = (
+            best_epoch,best_perplexity  = (
                 RayGPT2FundationModelTrainer._resume_training(best_checkpoint_dir, 
                                                               model, 
                                                               optimizer,
                                                               scaler,
                                                               device)
                 )
+            
+            epoch_start = best_epoch
             
 
         report_metrics = {
@@ -405,7 +407,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
                     if not os.path.exists(best_checkpoint_dir):
                         os.makedirs(best_checkpoint_dir)
 
-                    save_checkpoint(
+                    utility.save_checkpoint(
                         model,
                         optimizer,
                         scaler,
@@ -422,19 +424,12 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
 
     @staticmethod
     def _resume_training(best_checkpoint_dir, model, optimizer,scaler, device):
-        if os.path.exists(best_checkpoint_dir):
-            checkpoint = ray.train.Checkpoint.from_directory(best_checkpoint_dir)
-        else:
-            checkpoint = None
-        if checkpoint:
-            best_epoch, best_perplexity = resume_checkpoint(
-                model, optimizer, scaler, checkpoint,str(device)
-            )
-            epoch_start = best_epoch
-            print(f"Resumed training from best_epoch {best_epoch},best_perplexity {best_perplexity}")
-        else:
-            print(f"Checkpoint not found, starting from epoch 0")
-        return epoch_start,best_epoch,best_perplexity
+        
+        best_epoch, best_perplexity = utility.load_checkpoint(
+            model, optimizer, scaler, best_checkpoint_dir,str(device)
+        )
+        
+        return best_epoch,best_perplexity
 
     @staticmethod
     def _prepare_metric(device):

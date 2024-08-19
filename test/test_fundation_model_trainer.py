@@ -1,12 +1,10 @@
 import unittest
 
-from hypothesis import target
 
 
 from config import gpt2_cfg as cfg 
-from document_processor import TextDocumentProcessor
 from fundation_model_trainer import RayGPT2FundationModelTrainer
-from token_processor import CharTokenizer, TokenProcessor
+from token_processor import TokenProcessor
 
 class TestGPT2FundationModelTrainer(unittest.TestCase):
     def setUp(self) -> None:

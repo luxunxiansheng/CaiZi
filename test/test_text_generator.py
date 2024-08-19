@@ -1,13 +1,16 @@
 import unittest
-from uu import decode
+
+from collections import OrderedDict
+
 import torch
 
 
 from model.GPT import GPT
 from text_generator import TextGenerator
-from token_processor import CharTokenizer, TikTokenizer
-from collections import OrderedDict
+from token_processor import CharTokenizer
+
 from config import gpt2_cfg
+from utility import load_model_from_checkpoint
 
 class TestTextGenerator(unittest.TestCase):
     def test_text_generator(self):
@@ -24,8 +27,6 @@ class TestTextGenerator(unittest.TestCase):
         print("encoded:", encoded_tensor)
 
         
-        
-        
         vocab_size = 65
         dimension_embedding = 384
         block_size = 256
@@ -36,18 +37,7 @@ class TestTextGenerator(unittest.TestCase):
 
         model = GPT(vocab_size, dimension_embedding, block_size,n_layers, num_header, drop_rate, bias)
         
-        checkpoint = torch.load("/workspaces/CaiZi/model_weights/best_checkpoint/checkpoint.pt")["model"]
-        
-        
-
-        # Create a new state_dict without 'module.' prefix
-        new_state_dict = OrderedDict()
-        for k, v in checkpoint.items():
-            name = k.replace('_orig_mod.', '')  # remove 'module.' prefix
-            new_state_dict[name] = v
-        
-        model.load_state_dict(new_state_dict)
-        
+        load_model_from_checkpoint(model, "/workspaces/CaiZi/model_weights/best_checkpoint", device = torch.device("cuda" if torch.cuda.is_available() else "cpu"))
         
         
         model.eval()
@@ -58,7 +48,7 @@ class TestTextGenerator(unittest.TestCase):
         # Generate new text
         decoded = text_generator(encoded_tensor, max_new_tokens=2000, block_size=256)
 
-        print("decoded:", decoded)
+        print(f"\n\n --------------decoded------------:\n\n{decoded}")
         
         
 if __name__ == "__main__":

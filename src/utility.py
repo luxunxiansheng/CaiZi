@@ -9,8 +9,8 @@
 ###########################################
 """
 
+from collections import OrderedDict
 import os
-
 
 
 import torch
@@ -34,7 +34,7 @@ def save_checkpoint(
     perplexity: float,
     best_checkpoint_dir: str,
 ):
-    checkpoint ={
+    checkpoint = {
         "model": model.state_dict(),
         "optimizer": optimizer.state_dict(),
         "scaler": scaler.state_dict(),
@@ -42,28 +42,79 @@ def save_checkpoint(
         "perplexity": perplexity,
     }
 
-
     torch.save(
         checkpoint,
         os.path.join(best_checkpoint_dir, "checkpoint.pt"),
     )
 
 
-def resume_checkpoint(
-    model: Module, optimizer: Optimizer, scaler:GradScaler,checkpoint: Checkpoint,device:str) -> tuple[int, float]:
-    with checkpoint.as_directory() as checkpoint_dir:
-        checkpoint_dict = torch.load(os.path.join(checkpoint_dir, "checkpoint.pt"), map_location=device)
+def load_checkpoint(
+    model: Module,
+    optimizer: Optimizer,
+    scaler: GradScaler,
+    best_checkpoint_dir: str,
+    device: str,
+) -> tuple[int, float]:
+    
+    epoch = 0
+    perplexity = float("inf")
+ 
+    if os.path.exists(best_checkpoint_dir):
+        checkpoint = ray.train.Checkpoint.from_directory(best_checkpoint_dir)
+    else:
+        checkpoint = None
+
+    if checkpoint:
+        with checkpoint.as_directory() as checkpoint_dir:
+            checkpoint_dict = torch.load(
+                os.path.join(checkpoint_dir, "checkpoint.pt"), map_location=device
+            )
+
+            model.load_state_dict(checkpoint_dict["model"])
+            optimizer.load_state_dict(checkpoint_dict["optimizer"])
+            scaler.load_state_dict(checkpoint_dict["scaler"])
+            epoch = checkpoint_dict["epoch"] if "epoch" in checkpoint_dict else 0
+            perplexity = (
+                checkpoint_dict["perplexity"]
+                if "perplexity" in checkpoint_dict
+                else float("inf")
+            )
+
+    return (epoch,perplexity)
+
+
+
+
+def load_model_from_checkpoint(
+    model: Module,
+    best_checkpoint_dir: str,
+    device: str,
+) -> bool:
+    loaded=False
         
-        model.load_state_dict(checkpoint_dict["model"])
-        optimizer.load_state_dict(checkpoint_dict["optimizer"])
-        scaler.load_state_dict(checkpoint_dict["scaler"])
-        epoch = checkpoint_dict["epoch"] if "epoch" in checkpoint_dict else 0
-        perplexity = checkpoint_dict["perplexity"] if "perplexity" in checkpoint_dict else float("inf")
+    if os.path.exists(best_checkpoint_dir):
+        checkpoint = Checkpoint.from_directory(best_checkpoint_dir)
+        if checkpoint:
+            with checkpoint.as_directory() as checkpoint_dir:
+                checkpoint = torch.load(os.path.join(checkpoint_dir, "checkpoint.pt"), map_location=device)["model"]
+ 
+                                # Create a new state_dict without 'module.' prefix
+                new_state_dict = OrderedDict()
+                for k, v in checkpoint.items():
+                    name = k.replace('_orig_mod.', '')  # remove 'module.' prefix
+                    new_state_dict[name] = v
+                
+                model.load_state_dict(new_state_dict)
         
-    return (
-        epoch,
-        perplexity,
-    )
+
+                
+                model.load_state_dict(new_state_dict)
+                
+                loaded=True
+    
+    return loaded
+    
+
 
 
 def assign_check(left, right):
@@ -78,8 +129,7 @@ def load_hf_weights_into_gpt(gpt: GPT, model_type: str) -> None:
 
     print("loading weights from pretrained gpt: %s" % model_type)
 
-    num_layer = len(gpt.transformer.transformer_blocks)    
-
+    num_layer = len(gpt.transformer.transformer_blocks)
 
     # init a huggingface/transformers model
     model_hf = GPT2LMHeadModel.from_pretrained(model_type)
