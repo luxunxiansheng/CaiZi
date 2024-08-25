@@ -1,6 +1,7 @@
 filegroup(
     name = "config_file",
-    srcs = ["gpt2.yaml"],
+    srcs = ["gpt2.yaml",
+            "shakespeare.yaml"],
 
     visibility = ["//visibility:public"],
 )

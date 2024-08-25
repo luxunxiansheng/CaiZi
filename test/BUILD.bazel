@@ -13,6 +13,7 @@ py_test(
     deps = [
        "//src:config", 
        "//src:token_processor",      
+       "//src:document_processor",
     ],
 )
 
@@ -32,6 +33,7 @@ py_test(
        "//src:config", 
        "//src:text_generator",  
        "//src:token_processor",    
+       "//src:utility",
     ],
 )
 
