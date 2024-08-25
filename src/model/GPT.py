@@ -31,6 +31,11 @@ class GPT(nn.Module):
         bias: bool = False,
     ):
         super().__init__()
+        
+        self.num_layers = n_layers
+        self.num_head = num_header
+        self.dimension_embedding = dimension_embedding
+        self.block_size = block_size
 
         self.transformer = nn.ModuleDict(
             dict(
@@ -82,6 +87,22 @@ class GPT(nn.Module):
         if non_embedding:
             n_params -= self.transformer.position_embedding.weight.numel()
         return n_params
+    
+    def estimate_mfu(self, fwdbwd_per_iter, dt,flops_promised=125e12):
+        """ estimate model flops utilization (MFU) in units 4090 bfloat16 peak FLOPS """
+        # first estimate the number of flops we do per iteration.
+        # see PaLM paper Appendix B as ref: https://arxiv.org/abs/2204.02311
+        n_parameters = self.get_num_params()
+        
+        Q = self.dimension_embedding//self.num_head
+        flops_per_token = 6*n_parameters + 12*self.num_layers*self.num_head*Q*self.block_size
+        flops_per_fwdbwd = flops_per_token * self.block_size
+        flops_per_iter = flops_per_fwdbwd * fwdbwd_per_iter
+        # express our flops throughput as ratio of A100 bfloat16 peak flops
+        flops_achieved = flops_per_iter * (1.0/dt) # per second
+       
+        mfu = flops_achieved / flops_promised
+        return mfu
 
     def _init_weights(self, module):
         if isinstance(module, nn.Linear):

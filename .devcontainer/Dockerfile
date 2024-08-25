@@ -1,4 +1,4 @@
-FROM pytorch/pytorch:2.3.1-cuda12.1-cudnn8-runtime
+FROM pytorch/pytorch:2.4.0-cuda12.1-cudnn9-runtime
 
 
 RUN sed -i 's|http://archive.ubuntu.com/ubuntu/|https://mirrors.tuna.tsinghua.edu.cn/ubuntu/|g' /etc/apt/sources.list && \
@@ -18,7 +18,41 @@ RUN wget https://dl.grafana.com/enterprise/release/grafana-enterprise_11.1.3_amd
     dpkg -i grafana-enterprise_11.1.3_amd64.deb &&\
     rm grafana-enterprise_11.1.3_amd64.deb
 
+
+
+
+# Set the Prometheus version you want to install
+ENV PROMETHEUS_VERSION=2.54.0
+
+# Create a directory for Prometheus
+RUN mkdir -p /etc/prometheus /var/lib/prometheus
+
+# Download and extract Prometheus
+RUN wget https://github.com/prometheus/prometheus/releases/download/v${PROMETHEUS_VERSION}/prometheus-${PROMETHEUS_VERSION}.linux-amd64.tar.gz \
+    && tar -xvzf prometheus-${PROMETHEUS_VERSION}.linux-amd64.tar.gz \
+    && mv prometheus-${PROMETHEUS_VERSION}.linux-amd64/prometheus /usr/local/bin/ \
+    && mv prometheus-${PROMETHEUS_VERSION}.linux-amd64/promtool /usr/local/bin/ \
+    && mv prometheus-${PROMETHEUS_VERSION}.linux-amd64/consoles /etc/prometheus/ \
+    && mv prometheus-${PROMETHEUS_VERSION}.linux-amd64/console_libraries /etc/prometheus/ \
+    && mv prometheus-${PROMETHEUS_VERSION}.linux-amd64/prometheus.yml /etc/prometheus/ \
+    && rm -rf prometheus-${PROMETHEUS_VERSION}.linux-amd64* 
+
+
+
+# Expose Prometheus' default port
+# EXPOSE 9090
+
+# Define the entrypoint to run Prometheus
+ENTRYPOINT ["/usr/local/bin/prometheus"]
+
+# Set default arguments for Prometheus
+CMD ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.path=/var/lib/prometheus", "--web.console.libraries=/etc/prometheus/console_libraries", "--web.console.templates=/etc/prometheus/consoles"
+
+
+
+
 RUN pip install --index-url https://pypi.tuna.tsinghua.edu.cn/simple  pip-tools    
+
 
 
 COPY requirements.in .
@@ -35,5 +69,6 @@ RUN set -e; \
 
 # Install dependencies
 RUN pip install  --index-url https://pypi.tuna.tsinghua.edu.cn/simple   -r requirements.txt
+
 
     

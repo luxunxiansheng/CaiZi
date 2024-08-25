@@ -270,9 +270,10 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             "token_total": 0,  # total tokens processed
             "token_process_time_ms": 0.0, # time in ms
             "token_per_second": 0.0,    # speed 
+            "muf": 0.0,
         
             "epoch_train_loss": 0.0,
-            "epoch_batch_count": 0,
+            "physical_batch_count": 0,
         
             "norm": 0.0,
             "learning_rate": 0.0,
@@ -299,7 +300,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         
             token_processed = 0
             epoch_train_loss = 0
-            epoch_batch_count = 0
+            physical_batch_count = 0
             t0 = time.time()
 
             model.train()
@@ -334,7 +335,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
 
                     # for reporting
                     epoch_train_loss += (physical_loss.detach().item())
-                    epoch_batch_count += 1
+                    physical_batch_count += 1
                     global_step += 1
                     token_processed += (physical_training_batch_size_per_worker * block_size)
 
@@ -353,11 +354,11 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
                 lr_scheduler.step()
                 optimizer.zero_grad(set_to_none=True)
 
-            assert epoch_batch_count > 0, "epoch_batch_count must be greater than 0"
+            assert physical_batch_count > 0, "physical_batch_count must be greater than 0"
 
-            epoch_train_loss = epoch_train_loss / epoch_batch_count
+            epoch_train_loss = epoch_train_loss / physical_batch_count
             report_metrics["epoch_train_loss"] = epoch_train_loss
-            report_metrics["epoch_batch_count"] = epoch_batch_count
+            report_metrics["physical_batch_count"] = physical_batch_count
             report_metrics["global_step"] = global_step
 
             t1 = time.time()
@@ -366,6 +367,9 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             report_metrics["token_total"] = token_processed
             report_metrics["token_process_time_ms"] = dt * 1000
             report_metrics["token_per_second"] = token_per_second
+            
+            report_metrics["muf"] = model.estimate_mfu(fwdbwd_per_iter=physical_batch_count*physical_training_batch_size_per_worker,
+                                                       dt=dt)
 
             report_metrics["norm"] = norm.item()
             report_metrics["learning_rate"] = optimizer.param_groups[0]["lr"]
