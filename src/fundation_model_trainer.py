@@ -55,7 +55,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
                 "env_vars": {
                     "PYTHONPATH": "$PYTHONPATH:" + self.cfg.project_root + "/src",
                     "RAY_DATA_VERBOSE_PROGRESS": "1",
-                    "RAY_DEBUG": self.cfg.ray_debug,
+                    #"RAY_DEBUG": self.cfg.ray_debug,
                     "PYTHONMALLOC": "malloc",
                     
                 },
@@ -240,7 +240,7 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         loss_function = RayGPT2FundationModelTrainer._prepare_loss_function()
 
         # metrics
-        metric = RayGPT2FundationModelTrainer._prepare_metric(device)
+        perplexity_metric,mean_validate_loss_metric = RayGPT2FundationModelTrainer._prepare_metric(device)
 
         # ====== Resume training state from the checkpoint. ======
         epoch_start = 0
@@ -278,7 +278,6 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             "norm": 0.0,
             "learning_rate": 0.0,
             
-            "validate_batch_count": 0,
             "validate_loss": 0.0,
             "perplexity": 0.0,
             
@@ -374,44 +373,48 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
             report_metrics["norm"] = norm.item()
             report_metrics["learning_rate"] = optimizer.param_groups[0]["lr"]
 
-            # Evaluate the model on the validation set only the current worker is the rank 0 worker
-            if  ray.train.get_context().get_world_rank() == 0:
-                validate_loss = 0
-                validate_batch_count = 0
-                model.eval()
-                with torch.no_grad():
-                    for batch in validate_data_shard.iter_torch_batches(batch_size=physical_validate_batch_size_per_worker,drop_last=False,):
-                        validate_batch_count += 1
-                        input_ids = batch["input_ids"]
-                        target_ids = batch["target_ids"]
+          
+        
+            validate_loss = 0
+            validate_batch_count = 0
+            model.eval()
+            with torch.no_grad():
+                for batch in validate_data_shard.iter_torch_batches(batch_size=physical_validate_batch_size_per_worker,drop_last=False,):
+                    validate_batch_count += 1
+                    input_ids = batch["input_ids"]
+                    target_ids = batch["target_ids"]
 
-                        with torch.autocast(device_type=device.type,dtype=floating_point_precision,enabled=use_amp,):
-                            logits = model(input_ids)
-                            loss = loss_function(logits.flatten(0, 1), target_ids.flatten())
+                    with torch.autocast(device_type=device.type,dtype=floating_point_precision,enabled=use_amp,):
+                        logits = model(input_ids)
+                        loss = loss_function(logits.flatten(0, 1), target_ids.flatten())
+                        
 
-                        validate_loss += loss.item()  # only for reporting
-                        metric.update(logits, target_ids)
-
-                validate_loss = validate_loss / validate_batch_count
-                perplexity = metric.compute().item()
-                metric.reset()
-
-                report_metrics["validate_loss"] = validate_loss
-                report_metrics["validate_batch_count"] = validate_batch_count
-                report_metrics["perplexity"] = perplexity
+                    perplexity_metric.update(logits, target_ids)
+                    mean_validate_loss_metric(loss)
 
 
-                if perplexity < best_perplexity:
-                    best_perplexity = perplexity
-                    best_epoch = epoch
+            perplexity = perplexity_metric.compute().item()
+            perplexity_metric.reset()
+            report_metrics["perplexity"] = perplexity
 
-                    report_metrics["best_epoch"] = best_epoch
-                    report_metrics["best_perplexity"] = best_perplexity
-                    report_metrics["validate_loss_at_best_perplexity"] = validate_loss
+            validate_loss= mean_validate_loss_metric.compute().item()
+            mean_validate_loss_metric.reset()
+            report_metrics["validate_loss"] = validate_loss
 
-                    # In standard DDP training, where the model is the same across all ranks,
-                    # so only the global rank 0 worker needs to save and report the checkpoint
-                   
+
+            if perplexity < best_perplexity:
+                best_perplexity = perplexity
+                best_epoch = epoch
+
+                report_metrics["best_epoch"] = best_epoch
+                report_metrics["best_perplexity"] = best_perplexity
+                report_metrics["validate_loss_at_best_perplexity"] = validate_loss
+
+                
+                # In standard DDP training, where the model is the same across all ranks,
+                # so only the global rank 0 worker needs to save and report the checkpoint
+                if  ray.train.get_context().get_world_rank() == 0:
+
                     # create the best_checkpoint_dir if it does not exist
                     if not os.path.exists(best_checkpoint_dir):
                         os.makedirs(best_checkpoint_dir)
@@ -425,19 +428,19 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
                         best_checkpoint_dir,
                     )
 
-                # save the latest checkpoint periodically
-                if epoch % check_frequency == 0:
-                    if not os.path.exists(latest_checkpoint_dir):
-                        os.makedirs(latest_checkpoint_dir)
+                    # save the latest checkpoint periodically
+                    if epoch % check_frequency == 0:
+                        if not os.path.exists(latest_checkpoint_dir):
+                            os.makedirs(latest_checkpoint_dir)
 
-                    utility.save_checkpoint(
-                        model,
-                        optimizer,
-                        scaler,
-                        epoch,
-                        perplexity,
-                        latest_checkpoint_dir,
-                    )
+                        utility.save_checkpoint(
+                            model,
+                            optimizer,
+                            scaler,
+                            epoch,
+                            perplexity,
+                            latest_checkpoint_dir,
+                        )
 
             ray.train.report(metrics=report_metrics)
 
@@ -459,8 +462,9 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
 
     @staticmethod
     def _prepare_metric(device: torch.device):
-        metric = torchmetrics.text.Perplexity().to(device)
-        return metric
+        perplexity_metric = torchmetrics.text.Perplexity().to(device)
+        mean_valid_loss = torchmetrics.MeanMetric().to(device)
+        return perplexity_metric,mean_valid_loss
 
     @staticmethod
     def _prepare_loss_function():
