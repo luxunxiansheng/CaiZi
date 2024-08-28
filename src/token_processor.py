@@ -15,6 +15,7 @@ from abc import abstractmethod
 
 from typing import Dict, List
 
+from attr import validate
 import torch
 
 import tiktoken
@@ -68,9 +69,13 @@ class TikTokenizer(TokenProcessor):
         self.tokenizer = tiktoken.get_encoding(name)
   
     def __call__(self, input_text:Dict[str,str]) -> Dict[str, List[int]]:        
-        text = input_text['text']        
-        integers = self.tokenizer.encode(text,allowed_special={"<|endoftext|>"})
-        return {"ids": integers}
+        train_text = input_text['train']        
+        integers_train = self.tokenizer.encode(train_text,allowed_special={"<|endoftext|>"})
+
+        validate = input_text["validate"]
+        integers_validate = self.tokenizer.encode(validate,allowed_special={"<|endoftext|>"})
+
+        return {"train": integers_train,"validate": integers_validate}
         
     def decode(self, input_ids:List[int]) -> str:       
         return self.tokenizer.decode(input_ids)

@@ -3,7 +3,7 @@ project_root:
 output_dir: ${project_root}/outputs
 model_weights_dir: ${project_root}/model_weights
 
-dataset:
+text_dataset:
   - name: "tiny_shakespeare"
     path: "/workspaces/CaiZi/dataset/tiny_shakespeare.txt"
 

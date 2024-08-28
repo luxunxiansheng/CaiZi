@@ -16,17 +16,24 @@ class ChunkProcessor:
         self.stride = stride
 
 
-    def __call__(self, data: Dict[str,List[int]])->List[Dict[str, List[int]]]:
+    def __call__(self, data: Dict[str,List[int]])-> Dict[str, List[Dict[str, List[int]]]]:        
+        train_ids = data["train"]
+        train_data_items = []
         
-        token_ids = data['ids']
-        data_items = []
+        for i in range(0, len(train_ids) - self.block_size, self.stride):
+            input_chunk = train_ids[i:i + self.block_size]
+            target_chunk = train_ids[i + 1: i + self.block_size + 1]
+            train_data_items.append({"input_ids": input_chunk, "target_ids": target_chunk})
         
-        for i in range(0, len(token_ids) - self.block_size, self.stride):
-            input_chunk = token_ids[i:i + self.block_size]
-            target_chunk = token_ids[i + 1: i + self.block_size + 1]
-            data_items.append({"input_ids": input_chunk, "target_ids": target_chunk})
+        validate = data["validate"]
+        validate_data_items = []
+        for i in range(0, len(validate) - self.block_size, self.stride):
+            input_chunk = validate[i:i + self.block_size]
+            target_chunk = validate[i + 1: i + self.block_size + 1]
+            validate_data_items.append({"input_ids": input_chunk, "target_ids": target_chunk})
         
-        return data_items
+        
+        return {"train": train_data_items, "validate": validate_data_items}
             
 
         

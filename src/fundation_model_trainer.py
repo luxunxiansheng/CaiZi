@@ -9,6 +9,7 @@
 ###########################################
 """
 
+from json import load
 import os
 from abc import ABC, abstractmethod
 import inspect
@@ -16,6 +17,8 @@ from pathlib import Path
 
 import time
 from typing import Optional
+
+from datasets import load_from_disk # huggingface datasets
 
 import ray.train
 import ray.train.torch
@@ -42,6 +45,11 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         self.train_chunked_tokens: Optional[ray.data.Dataset] = None
         self.validate_chunked_tokens: Optional[ray.data.Dataset] = None
  
+        self.start_ray()
+    
+    def __del__(self):
+        self.stop_ray()
+
     def start_ray(self):
         os.environ["RAY_DEDUP_LOGS"] = "1"
         os.environ["RAY_COLOR_PREFIX"] = "1"
@@ -79,30 +87,83 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
     
     def stop_ray(self): 
         ray.shutdown()    
-        
-    def data_preprocess(self):
-        dataset = self.cfg["dataset"]
-        data_sources = [Path(item["path"]) for item in dataset]
+
+
+    # def huggingface_data_preprocess(self):
+         
+    #     openwebtext_path = self.cfg["hugggingface_dataset"]["path"]
+    #     dataset = load_from_disk(openwebtext_path)
+
+
+    #     # owt by default only contains the 'train' split, so create a test split
+    #     split_dataset = dataset["train"].train_test_split(test_size=0.0005, seed=2357, shuffle=True)
+    #     split_dataset['val'] = split_dataset.pop('test') # rename the test split to val
+
+    #     # this results in:
+    #     # >>> split_dataset
+    #     # DatasetDict({
+    #     #     train: Dataset({
+    #     #         features: ['text'],
+    #     #         num_rows: 8009762
+    #     #     })
+    #     #     val: Dataset({
+    #     #         features: ['text'],
+    #     #         num_rows: 4007
+    #     #     })
+    #     # })
+
+    #     # we now want to tokenize the dataset. first define the encoding function (gpt2 bpe)
+    #     def process(example):
+    #         ids = enc.encode_ordinary(example['text']) # encode_ordinary ignores any special tokens
+    #         ids.append(enc.eot_token) # add the end of text token, e.g. 50256 for gpt2 bpe
+    #         # note: I think eot should be prepended not appended... hmm. it's called "eot" though...
+    #         out = {'ids': ids, 'len': len(ids)}
+    #         return out
+
+    #     # tokenize the dataset
+    #     tokenized = split_dataset.map(
+    #         process,
+    #         remove_columns=['text'],
+    #         desc="tokenizing the splits",
+    #         num_proc=num_proc,
+    #     )
+
+
+
+    #     train_ds = ray.data.from_huggingface(hf_ds["train"])
+    #     validate_ds = ray.data.from_huggingface(hf_ds["val"])
+       
+
+    #     block_size = self.cfg["model"]["block_size"]
+    #     stride = self.cfg["model"]["stride"]
+    #     chunk_processor = ChunkProcessor(block_size=block_size, stride=stride,column_name="data")
+    #     self.train_chunked_tokens = train_tokens.flat_map(chunk_processor)
+    #     self.validate_chunked_tokens = validate_tokens.flat_map(chunk_processor)
+
+
+
+    def plain_text_data_preprocess(self):
+        text_dataset = self.cfg["text_dataset"]
+        data_sources = [Path(item["path"]) for item in text_dataset]
         text_document_paths = ray.data.from_items(data_sources)
         train_ratio = self.cfg["ray_data"]["train_ratio"]
 
-        train_text_document_processor = TextDocumentProcessor(section="train",train_ratio=train_ratio)
-        train_texts = text_document_paths.map(train_text_document_processor)
-
-        validate_text_document_processor = TextDocumentProcessor(section="validate",train_ratio=train_ratio)
-        validate_texts = text_document_paths.map(validate_text_document_processor)
+        text_document_processor = TextDocumentProcessor(train_ratio=train_ratio)
+        texts = text_document_paths.map(text_document_processor)
 
         tokenizer_class = TokenProcessor.create(self.cfg['ray_data']['tokenizer_class']['name'])
         tokenizer_args =  self.cfg['ray_data']['tokenizer_class']['args']
         tokenizer= tokenizer_class(**tokenizer_args)
-        train_tokens = train_texts.map(tokenizer)
-        validate_tokens = validate_texts.map(tokenizer)
+        tokens = texts.map(tokenizer)
         
         block_size = self.cfg["model"]["block_size"]
         stride = self.cfg["model"]["stride"]
         chunk_processor = ChunkProcessor(block_size=block_size, stride=stride)
-        self.train_chunked_tokens = train_tokens.flat_map(chunk_processor)
-        self.validate_chunked_tokens = validate_tokens.flat_map(chunk_processor)
+        chunked_tokens = tokens.map(chunk_processor)
+
+        self.train_chunked_tokens = chunked_tokens["train"]
+        self.validate_chunked_tokens = chunked_tokens["validate"]
+        
 
      
     def self_supervised_train(self):
