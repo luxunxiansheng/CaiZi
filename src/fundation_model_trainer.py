@@ -161,9 +161,15 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
         chunk_processor = ChunkProcessor(block_size=block_size, stride=stride)
         chunked_tokens = tokens.map(chunk_processor)
 
-        self.train_chunked_tokens = chunked_tokens["train"]
-        self.validate_chunked_tokens = chunked_tokens["validate"]
-        
+        train_chunked_tokens = []
+        validate_chunked_tokens = []
+
+        for item in chunked_tokens.iter_rows():
+            train_chunked_tokens.extend(item["train"])
+            validate_chunked_tokens.extend(item["validate"])
+
+        self.train_chunked_tokens = ray.data.from_items(train_chunked_tokens)
+        self.validate_chunked_tokens = ray.data.from_items(validate_chunked_tokens)
 
      
     def self_supervised_train(self):

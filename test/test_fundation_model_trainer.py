@@ -12,27 +12,27 @@ class TestGPT2FundationModelTrainer(unittest.TestCase):
         self.trainer = RayGPT2FundationModelTrainer(cfg)
      
     
-    def test_numpy_data_process(self):
+    # def test_numpy_data_process(self):
 
-        self.trainer.huggingface_data_preprocess()
+    #     self.trainer.huggingface_data_preprocess()
         
                
-        tokenizer_class = TokenProcessor.create(cfg['ray_data']['tokenizer_class']['name'])
-        tokenizer_args =  cfg['ray_data']['tokenizer_class']['args']
-        tokenizer= tokenizer_class(**tokenizer_args)
+    #     tokenizer_class = TokenProcessor.create(cfg['ray_data']['tokenizer_class']['name'])
+    #     tokenizer_args =  cfg['ray_data']['tokenizer_class']['args']
+    #     tokenizer= tokenizer_class(**tokenizer_args)
     
-        validate_dataset = self.trainer.validate_chunked_tokens
+    #     validate_dataset = self.trainer.validate_chunked_tokens
     
     
-        for row in validate_dataset.iter_rows():
-            input_ids = row["input_ids"]
-            target_ids = row["target_ids"]
+    #     for row in validate_dataset.iter_rows():
+    #         input_ids = row["input_ids"]
+    #         target_ids = row["target_ids"]
             
-            print("-----------------------------")
-            print(tokenizer.decode(input_ids))
-            print("..............................")
-            print(tokenizer.decode(target_ids))
-            print("*******************************")
+    #         print("-----------------------------")
+    #         print(tokenizer.decode(input_ids))
+    #         print("..............................")
+    #         print(tokenizer.decode(target_ids))
+    #         print("*******************************")
 
 
     

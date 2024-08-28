@@ -15,7 +15,6 @@ class ChunkProcessor:
         self.block_size = block_size
         self.stride = stride
 
-
     def __call__(self, data: Dict[str,List[int]])-> Dict[str, List[Dict[str, List[int]]]]:        
         train_ids = data["train"]
         train_data_items = []
