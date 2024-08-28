@@ -16,11 +16,13 @@ class TestChunkProcessor(unittest.TestCase):
         
         chunk_processor = ChunkProcessor()
         
-        data = {"ids": [1,2,3,4,5,6,7,8,9,10]}
+        data = {"train": [1,2,3,4,5,6,7,8,9,10]
+                , "validate": [11,12,13,14,15,16,17,18,19,20]}
         
         data_items = chunk_processor(data)
         
-        print(data_items)
+        print(data_items["train"])
+        print(data_items["validate"])
         
 
 if __name__ == "__main__":
