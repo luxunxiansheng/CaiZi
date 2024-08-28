@@ -46,10 +46,14 @@ class CharTokenizer(TokenProcessor):
         self.idx2char = {idx:char for idx,char in enumerate(unique_chars)}
     
     def __call__(self, input_text:Dict[str,str]) -> Dict[str, List[int]]:
-        text = input_text['text']     
+        train_text = input_text['train']     
         assert self.char2idx is not None, "Ensure you have at least one unique character"   
-        integers = [self.char2idx[char] for char in text]
-        return {"ids": integers}
+        train_integers = [self.char2idx[char] for char in train_text]
+
+        validate_text = input_text['validate']
+        integers_validate = [self.char2idx[char] for char in validate_text]
+
+        return {"train": train_integers,"validate": integers_validate}
         
     def decode(self, input_ids:List[int]) -> str:
         assert self.idx2char is not None, "Ensure you have at least one unique character"
