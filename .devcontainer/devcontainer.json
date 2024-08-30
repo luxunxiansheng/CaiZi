@@ -4,35 +4,17 @@
     "context": "..",
     "dockerfile": "Dockerfile",
     "args": {
-      "http_proxy": "${localEnv:http_proxy}",
-      "https_proxy": "${localEnv:https_proxy}",
-      "no_proxy": "${localEnv:no_proxy}"
+
     }
   },
   "containerEnv": {
-    "HTTP_PROXY": "${localEnv:HTTP_PROXY}",
-    "HTTPS_PROXY": "${localEnv:HTTPS_PROXY}",
-    "http_proxy": "${localEnv:http_proxy}",
-    "https_proxy": "${localEnv:https_proxy}",
-    "no_proxy": "localhost,127.0.0.1" // Adjusted with your no_proxy list
+
   },
 
-  "runArgs": [
-		"--runtime=nvidia",
-		"--gpus=all",
+  "runArgs": [				
 		"--shm-size=8.30gb",
 		"--cap-add=SYS_PTRACE",
-		"--env",
-		"HTTP_PROXY=${localEnv:http_proxy}",
-		"--env",
-		"HTTPS_PROXY=${localEnv:https_proxy}",
-		"--env",
-		"http_proxy=${localEnv:http_proxy}",
-		"--env",
-		"https_proxy=${localEnv:https_proxy}",
-		"--env",
-		"no_proxy=localhost,127.0.0.1",
-		"--network=host"
+
   ],
   "customizations": {
     "vscode": {
