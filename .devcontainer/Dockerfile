@@ -16,30 +16,29 @@ RUN sed -i 's|http://archive.ubuntu.com/ubuntu/|https://mirrors.tuna.tsinghua.ed
 
 
 
-# Download and install Bazelisk
+#  Install Bazelisk
 RUN wget https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-amd64 \
     -O /usr/local/bin/bazelisk && \
     chmod +x /usr/local/bin/bazelisk
-
-# Set Bazelisk as the default bazel command
 RUN ln -s /usr/local/bin/bazelisk /usr/local/bin/bazel
 
 
+# Install Buildifier
+ENV BUILDIFIER_VERSION=7.3.1
+RUN curl -L -o /usr/local/bin/buildifier \
+    "https://github.com/bazelbuild/buildtools/releases/download/${BUILDIFIER_VERSION}/buildifier-linux-amd64" \
+    && chmod +x /usr/local/bin/buildifier
 
+
+
+# install grafana
 RUN wget https://dl.grafana.com/enterprise/release/grafana-enterprise_11.1.3_amd64.deb &&\
     dpkg -i grafana-enterprise_11.1.3_amd64.deb &&\
     rm grafana-enterprise_11.1.3_amd64.deb
 
-
-
-
-# Set the Prometheus version you want to install
+# Install Prometheus
 ENV PROMETHEUS_VERSION=2.54.0
-
-# Create a directory for Prometheus
 RUN mkdir -p /etc/prometheus /var/lib/prometheus
-
-# Download and extract Prometheus
 RUN wget https://github.com/prometheus/prometheus/releases/download/v${PROMETHEUS_VERSION}/prometheus-${PROMETHEUS_VERSION}.linux-amd64.tar.gz \
     && tar -xvzf prometheus-${PROMETHEUS_VERSION}.linux-amd64.tar.gz \
     && mv prometheus-${PROMETHEUS_VERSION}.linux-amd64/prometheus /usr/local/bin/ \
@@ -49,24 +48,15 @@ RUN wget https://github.com/prometheus/prometheus/releases/download/v${PROMETHEU
     && mv prometheus-${PROMETHEUS_VERSION}.linux-amd64/prometheus.yml /etc/prometheus/ \
     && rm -rf prometheus-${PROMETHEUS_VERSION}.linux-amd64* 
 
-
-
-# Expose Prometheus' default port
-# EXPOSE 9090
-
-# Define the entrypoint to run Prometheus
 ENTRYPOINT ["/usr/local/bin/prometheus"]
-
-# Set default arguments for Prometheus
 CMD ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.path=/var/lib/prometheus", "--web.console.libraries=/etc/prometheus/console_libraries", "--web.console.templates=/etc/prometheus/consoles"
 
 
-
-
+# Install pip-tools
 RUN pip install --index-url https://pypi.tuna.tsinghua.edu.cn/simple  pip-tools    
 
 
-
+# Install dependencies if requirements.in has changed
 COPY requirements.in .
 
 # Function to check if requirements.in has changed and run pip-compile if needed
@@ -79,7 +69,6 @@ RUN set -e; \
         sha256sum requirements.in > requirements.in.sha256; \
     fi
 
-# Install dependencies
 RUN pip install  --index-url https://pypi.tuna.tsinghua.edu.cn/simple   -r requirements.txt
 
 
