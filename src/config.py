@@ -15,6 +15,6 @@ from hydra import compose, initialize,core
 core.global_hydra.GlobalHydra.instance().clear()
 initialize(config_path="../config",version_base=None)
 
-gpt2_cfg = compose(config_name="openwebtext")
+gpt2_cfg = compose(config_name="shakespeare")
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 gpt2_cfg.project_root = project_root

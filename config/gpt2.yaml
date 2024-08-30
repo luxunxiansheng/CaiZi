@@ -21,6 +21,7 @@ text_dataset:
 
   - name: "tiny_shakespeare"
     path: ${project_root}/dataset/tiny_shakespeare.txt
+    
 
 hugggingface_dataset:
     name: "openwebtext"

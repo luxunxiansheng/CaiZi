@@ -9,16 +9,13 @@
 ###########################################
 """
 
-from json import load
 import os
-from abc import ABC, abstractmethod
 import inspect
 from pathlib import Path
 
 import time
 from typing import Optional
 
-from datasets import load_from_disk # huggingface datasets
 
 import ray.train
 import ray.train.torch
@@ -34,13 +31,7 @@ from model.GPT import GPT
 from model.gpt_lr_scheduler import GPTLRScheduler
 import  utility 
 
-
-class FundationModelTrainer(ABC):
-    @abstractmethod
-    def self_supervised_train(self):
-        pass
-
-class RayGPT2FundationModelTrainer(FundationModelTrainer):
+class RayGPT2FundationModelTrainer():
     def __init__(self, cfg: dict) -> None:
         self.cfg: dict = cfg
         self.train_chunked_tokens: Optional[ray.data.Dataset] = None
@@ -89,57 +80,6 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
     def stop_ray(self): 
         ray.shutdown()    
 
-
-    # def huggingface_data_preprocess(self):
-         
-    #     openwebtext_path = self.cfg["hugggingface_dataset"]["path"]
-    #     dataset = load_from_disk(openwebtext_path)
-
-
-    #     # owt by default only contains the 'train' split, so create a test split
-    #     split_dataset = dataset["train"].train_test_split(test_size=0.0005, seed=2357, shuffle=True)
-    #     split_dataset['val'] = split_dataset.pop('test') # rename the test split to val
-
-    #     # this results in:
-    #     # >>> split_dataset
-    #     # DatasetDict({
-    #     #     train: Dataset({
-    #     #         features: ['text'],
-    #     #         num_rows: 8009762
-    #     #     })
-    #     #     val: Dataset({
-    #     #         features: ['text'],
-    #     #         num_rows: 4007
-    #     #     })
-    #     # })
-
-    #     # we now want to tokenize the dataset. first define the encoding function (gpt2 bpe)
-    #     def process(example):
-    #         ids = enc.encode_ordinary(example['text']) # encode_ordinary ignores any special tokens
-    #         ids.append(enc.eot_token) # add the end of text token, e.g. 50256 for gpt2 bpe
-    #         # note: I think eot should be prepended not appended... hmm. it's called "eot" though...
-    #         out = {'ids': ids, 'len': len(ids)}
-    #         return out
-
-    #     # tokenize the dataset
-    #     tokenized = split_dataset.map(
-    #         process,
-    #         remove_columns=['text'],
-    #         desc="tokenizing the splits",
-    #         num_proc=num_proc,
-    #     )
-
-
-
-    #     train_ds = ray.data.from_huggingface(hf_ds["train"])
-    #     validate_ds = ray.data.from_huggingface(hf_ds["val"])
-       
-
-    #     block_size = self.cfg["model"]["block_size"]
-    #     stride = self.cfg["model"]["stride"]
-    #     chunk_processor = ChunkProcessor(block_size=block_size, stride=stride,column_name="data")
-    #     self.train_chunked_tokens = train_tokens.flat_map(chunk_processor)
-    #     self.validate_chunked_tokens = validate_tokens.flat_map(chunk_processor)
 
 
 

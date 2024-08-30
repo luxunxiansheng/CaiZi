@@ -4,8 +4,12 @@ output_dir: ${project_root}/outputs
 model_weights_dir: ${project_root}/model_weights
 
 text_dataset:
-  - name: "tiny_shakespeare"
-    path: "/workspaces/CaiZi/dataset/tiny_shakespeare.txt"
+  source:
+    - name: "tiny_shakespeare"
+      path: ${project_root}/dataset/tiny_shakespeare.txt
+  processed: ${project_root}/dataset/tiny_shakespeare.parquet
+
+
 
 ray_debug: "0"   # "0": no debug, "1": debug
 
