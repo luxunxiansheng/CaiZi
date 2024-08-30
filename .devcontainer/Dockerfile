@@ -14,6 +14,18 @@ RUN sed -i 's|http://archive.ubuntu.com/ubuntu/|https://mirrors.tuna.tsinghua.ed
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+
+
+# Download and install Bazelisk
+RUN wget https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-amd64 \
+    -O /usr/local/bin/bazelisk && \
+    chmod +x /usr/local/bin/bazelisk
+
+# Set Bazelisk as the default bazel command
+RUN ln -s /usr/local/bin/bazelisk /usr/local/bin/bazel
+
+
+
 RUN wget https://dl.grafana.com/enterprise/release/grafana-enterprise_11.1.3_amd64.deb &&\
     dpkg -i grafana-enterprise_11.1.3_amd64.deb &&\
     rm grafana-enterprise_11.1.3_amd64.deb

@@ -4,9 +4,9 @@
     "context": "..",
     "dockerfile": "Dockerfile",
     "args": {
-      "http_proxy": "${localEnv:http_proxy}",
-      "https_proxy": "${localEnv:https_proxy}",
-      "no_proxy": "${localEnv:no_proxy}"
+      //"http_proxy": "${localEnv:http_proxy}",
+      //"https_proxy": "${localEnv:https_proxy}",
+      //"no_proxy": "${localEnv:no_proxy}"
     }
   },
   "containerEnv": {
@@ -72,7 +72,7 @@
     }
   },
   "features": {
-    "ghcr.io/balazs23/devcontainers-features/bazel:1": {},
+    //"ghcr.io/balazs23/devcontainers-features/bazel:1": {},
    
   }
 }

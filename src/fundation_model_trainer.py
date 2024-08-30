@@ -26,7 +26,8 @@ import torch
 import torchmetrics
 import ray
 
-from document_processor import TextDocumentProcessor
+from datasource_processor import DatasourceProcessor
+from text_split_processor import TextSplitProcessor
 from chunk_processor import ChunkProcessor
 from token_processor import TokenProcessor
 from model.GPT import GPT
@@ -143,13 +144,16 @@ class RayGPT2FundationModelTrainer(FundationModelTrainer):
 
 
     def plain_text_data_preprocess(self):
+
         text_dataset = self.cfg["text_dataset"]
         data_sources = [Path(item["path"]) for item in text_dataset]
-        text_document_paths = ray.data.from_items(data_sources)
-        train_ratio = self.cfg["ray_data"]["train_ratio"]
+        document_paths = ray.data.from_items(data_sources)
 
-        text_document_processor = TextDocumentProcessor(train_ratio=train_ratio)
-        texts = text_document_paths.map(text_document_processor)
+        texts = document_paths.map(DatasourceProcessor())
+
+        train_ratio = self.cfg["ray_data"]["train_ratio"]
+        text_split_processor = TextSplitProcessor(train_ratio=train_ratio)
+        texts = texts.map(text_split_processor)
 
         tokenizer_class = TokenProcessor.create(self.cfg['ray_data']['tokenizer_class']['name'])
         tokenizer_args =  self.cfg['ray_data']['tokenizer_class']['args']

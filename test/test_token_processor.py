@@ -2,7 +2,7 @@ from enum import unique
 from math import e
 import unittest
 
-from document_processor import TextDocumentProcessor
+from text_split_processor import TextSplitProcessor
 from token_processor import CharTokenizer, TikTokenizer, TokenProcessor
 from config import gpt2_cfg
 
@@ -29,7 +29,7 @@ class TestTokenProcessor(unittest.TestCase):
 class TestCharTokenizer(unittest.TestCase):
     def test_encode_and_decoder(self):
         
-        doc_processor = TextDocumentProcessor()
+        doc_processor = TextSplitProcessor()
         raw_text = doc_processor({"item":gpt2_cfg.text_dataset[0]["path"]})
         
         token_processor_args = gpt2_cfg["ray_data"]['tokenizer_class']['args']

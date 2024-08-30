@@ -1,0 +1,80 @@
+project_root:
+
+output_dir: ${project_root}/outputs
+model_weights_dir: ${project_root}/model_weights
+
+huggingface_dataset:
+    name: "openwebtext"
+    path: ${project_root}/dataset/openwebtext
+
+
+
+model:
+  vocab_size: 50304 # GPT-2 vocab_size of 50257, padded up to nearest multiple of 64 for efficiency
+  block_size: 1024 # maximum length of the text to be generated
+  stride: 1024 #  window stride for the dataset. 
+  dimension_embedding: 768 # embedding dimension
+  num_layers: 12 # number of layers
+  num_headers: 12 # number of heads
+  drop_rate: 0.0 # dropout rate
+  bias: False # whether to use bias in attention layer
+
+  openai_gpt_dir: ${model_weights_dir}/openai
+
+
+ray_data:
+  train_ratio: 0.9995
+  # Tokenizer
+  tokenizer_class:
+    name: Tokenizer
+    args:
+      name: "gpt2"
+      
+
+ray_train:
+  num_workers:  1
+  use_gpu: True
+  num_gpus_per_worker: 1
+  num_cpus_per_worker: 1
+
+  resume_training: False
+  check_frequency: 4
+
+  gradient_accumulation_steps: 1
+  physical_training_batch_size_per_worker: 64
+  physical_validate_batch_size_per_worker: 64
+  num_epoch_per_worker: 80
+
+  storage_path: ${output_dir}/openwebtext
+
+  name: "124M"  #Name of the trial or experiment
+
+    # checkpoint dir
+  best_checkpoint_dir: ${model_weights_dir}/best_checkpoint
+  latest_checkpoint_dir: ${model_weights_dir}/latest_checkpoint
+
+  start_context: "To be, or not to be: that is the question."
+  
+  weight_decay: 0.1
+
+  warmup_steps: 2e3
+  max_steps: 6e5
+  max_lr: 6e-4
+  min_lr: 6e-5
+  beta1: 0.9
+  beta2: 0.95
+  decay_lr: True
+
+  data_type: "bfloat16"
+
+
+
+
+ 
+  
+
+  
+  
+  
+  
+
