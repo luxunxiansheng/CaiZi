@@ -1,8 +1,7 @@
-FROM pytorch/pytorch:2.4.0-cuda12.1-cudnn9-runtime
+FROM pytorch/pytorch
 
 
-RUN sed -i 's|http://archive.ubuntu.com/ubuntu/|https://mirrors.tuna.tsinghua.edu.cn/ubuntu/|g' /etc/apt/sources.list && \
-    apt-get update && \
+RUN apt-get update && \
     apt-get install -y sudo && \
     apt-get install -y screen && \
     apt-get install gdb -y && \
@@ -51,7 +50,7 @@ CMD ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.path=/var/l
 
 
 
-RUN pip install --index-url https://pypi.tuna.tsinghua.edu.cn/simple  pip-tools    
+RUN pip install  pip-tools    
 
 
 
@@ -68,7 +67,7 @@ RUN set -e; \
     fi
 
 # Install dependencies
-RUN pip install  --index-url https://pypi.tuna.tsinghua.edu.cn/simple   -r requirements.txt
+RUN pip install   -r requirements.txt
 
 
     
