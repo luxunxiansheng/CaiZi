@@ -8,7 +8,7 @@ Copyright (c) 2025 debutpark.com
 import unittest
 
 from config import gpt2_cfg
-from text_split_processor import  TextSplitProcessor
+from preprocessor.text_split_processor import TextSplitProcessor
 
 class TestTextSplitProcessor(unittest.TestCase):
     @unittest.skip("skip test_text_document_processor")

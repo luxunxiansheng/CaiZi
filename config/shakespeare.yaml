@@ -7,7 +7,7 @@ dataset:
   source:
     - name: "tiny_shakespeare"
       path: ${project_root}/dataset/tiny_shakespeare.txt
-  chunked_tokens: ${project_root}/dataset/tiny_shakespeare.parquet
+      chunked_tokens: ${project_root}/dataset/tiny_shakespeare.parquet
 
 
 

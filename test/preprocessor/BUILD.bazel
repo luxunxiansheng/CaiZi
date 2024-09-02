@@ -1,0 +1,36 @@
+py_test(
+    name = "test_datasource_processor",
+    srcs = ["test_datasource_processor.py"],
+    deps = [
+       "//src:config", 
+       "//src/preprocessor:datasource_processor",      
+    ],
+)
+
+py_test(
+    name = "test_token_processor",
+    srcs = ["test_token_processor.py"],
+    deps = [
+       "//src:config", 
+       "//src/preprocessor:token_processor",      
+      
+    ],
+)
+
+py_test(
+    name = "test_chunk_processor",
+    srcs = ["test_chunk_processor.py"],
+    deps = [
+       "//src:config", 
+       "//src/preprocessor:chunk_processor",      
+    ],
+)
+
+py_test(
+    name= "test_text_split_processor",
+    srcs = ["test_text_split_processor.py"],
+    deps = [
+       "//src:config", 
+       "//src/preprocessor:text_split_processor",      
+    ],
+)
