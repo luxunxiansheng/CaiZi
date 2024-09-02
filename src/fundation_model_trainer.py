@@ -83,7 +83,7 @@ class RayGPT2FundationModelTrainer():
     def load_data(self):
         
         chunked_tokens = ray.data.read_parquet(self.cfg["dataset"]["chunked_tokens"])
-        self.train_chunked_tokens = chunked_tokens.select_columns(["train"])
+        self.train_chunked_tokens = chunked_tokens
         self.validate_chunked_tokens = chunked_tokens.select_columns(["validate"])
 
      

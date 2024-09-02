@@ -17,12 +17,6 @@ py_library(
     visibility = ["//visibility:public"],
 )
 
-py_library(
-    name = "text_split_processor",
-    srcs = ["text_split_processor.py"],
-    visibility = ["//visibility:public"],
-
-)
 
 
 

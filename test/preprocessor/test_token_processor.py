@@ -1,6 +1,6 @@
 import unittest
 
-from preprocessor.text_split_processor import TextSplitProcessor
+
 from preprocessor.token_processor import CharTokenizer, TokenProcessor
 from config import gpt2_cfg, gpt2_nano_cfg
 
@@ -26,7 +26,7 @@ class TestTokenProcessor(unittest.TestCase):
 class TestCharTokenizer(unittest.TestCase):
     def test_encode_and_decoder(self):
         
-        doc_processor = TextSplitProcessor()
+     
         raw_text = "hello wold"
         
         token_processor_args = gpt2_nano_cfg["ray_data"]['tokenizer_class']['args']
