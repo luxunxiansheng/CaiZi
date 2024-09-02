@@ -1,5 +1,15 @@
-from typing import  Dict, List
+""" 
+###########################################
+#
+# Author: Bin.Li                          
+# Email:  ornot2008@yahoo.com
+# MIT License
+# Copyright (c) 2025 debutpark.com 
+#
+###########################################
+"""
 
+from typing import  Dict
 import pyarrow.parquet as pq
 
 class DatasourceProcessor():
@@ -19,6 +29,8 @@ class DatasourceProcessor():
             for text in texts:
                 raw_text += text.as_py() + "<|endoftext|>"            
             return {"text": raw_text}
+        else:
+            return {"text": ""}
   
             
             

@@ -80,33 +80,11 @@ class RayGPT2FundationModelTrainer():
     def stop_ray(self): 
         ray.shutdown()    
 
-
-
-
-    def plain_text_data_preprocess(self):
-
-        text_dataset = self.cfg["text_dataset"]
-        data_sources = [Path(item["path"]) for item in text_dataset]
-        document_paths = ray.data.from_items(data_sources)
-
-        texts = document_paths.map(DatasourceProcessor())
-
-        train_ratio = self.cfg["ray_data"]["train_ratio"]
-        text_split_processor = TextSplitProcessor(train_ratio=train_ratio)
-        texts = texts.map(text_split_processor)
-
-        tokenizer_class = TokenProcessor.create(self.cfg['ray_data']['tokenizer_class']['name'])
-        tokenizer_args =  self.cfg['ray_data']['tokenizer_class']['args']
-        tokenizer= tokenizer_class(**tokenizer_args)
-        tokens = texts.map(tokenizer)
+    def load_data(self):
         
-        block_size = self.cfg["model"]["block_size"]
-        stride = self.cfg["model"]["stride"]
-        chunk_processor = ChunkProcessor(block_size=block_size, stride=stride)
-        chunked_tokens = tokens.map(chunk_processor)
-
-
-
+        chunked_tokens = ray.data.read_parquet(self.cfg["dataset"]["chunked_tokens"])
+        self.train_chunked_tokens = chunked_tokens.select_columns(["train"])
+        self.validate_chunked_tokens = chunked_tokens.select_columns(["validate"])
 
      
     def self_supervised_train(self):
@@ -139,11 +117,9 @@ class RayGPT2FundationModelTrainer():
           
         }
 
-        
-
         train_chunked_tokens = []
         validate_chunked_tokens = []
-        chunked_tokens = ray.data.read_parquet(self.cfg["ray_data"]["chunked_tokens"])
+        chunked_tokens = ray.data.read_parquet(self.cfg["dataset"]["chunked_tokens"])
         for item in chunked_tokens.iter_rows():
             train_chunked_tokens.extend(item["train"])
             validate_chunked_tokens.extend(item["validate"])
