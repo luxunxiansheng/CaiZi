@@ -1,28 +1,28 @@
 import unittest
 
-from collections import OrderedDict
 
 import torch
 
 
 from model.GPT import GPT
+from preprocessor.token_processor import CharTokenizer
 from text_generator import TextGenerator
-from token_processor import CharTokenizer
 
-from config import gpt2_cfg
+
+from config import gpt2_nano_cfg
 from utility import load_model_from_checkpoint
 
 class TestTextGenerator(unittest.TestCase):
     def test_text_generator(self):
         
-        token_processor_args = gpt2_cfg["ray_data"]['tokenizer_class']['args']
+        token_processor_args = gpt2_nano_cfg["ray_data"]['tokenizer_class']['args']
 
         token_processor = CharTokenizer(**token_processor_args)
         
-        start_context = "\n"
+        start_context = "hello world"
 
-        encoded = token_processor({"text": start_context})
-        encoded_tensor = torch.tensor(encoded["ids"]).unsqueeze(0)
+        encoded = token_processor({"train": start_context, "validate": start_context})
+        encoded_tensor = torch.tensor(encoded["train"]).unsqueeze(0)
         
         print("encoded:", encoded_tensor)
 

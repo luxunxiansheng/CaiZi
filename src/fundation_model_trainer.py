@@ -23,10 +23,10 @@ import torch
 import torchmetrics
 import ray
 
-from datasource_processor import DatasourceProcessor
-from text_split_processor import TextSplitProcessor
-from chunk_processor import ChunkProcessor
-from token_processor import TokenProcessor
+from preprocessor.datasource_processor import DatasourceProcessor
+from preprocessor.text_split_processor import TextSplitProcessor
+from preprocessor.chunk_processor import ChunkProcessor
+from preprocessor.token_processor import TokenProcessor
 from model.GPT import GPT
 from model.gpt_lr_scheduler import GPTLRScheduler
 import  utility 
