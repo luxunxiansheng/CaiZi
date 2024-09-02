@@ -6,7 +6,7 @@ model_weights_dir: ${project_root}/model_weights
 dataset:
   source:
     - name: "openwebtext"
-      path: ${project_root}/dataset/openwebtext
+      path: ${project_root}/dataset/openwebtext/shards
       chunked_tokens: ${project_root}/dataset/openwebtext/chunked_tokens
 
 

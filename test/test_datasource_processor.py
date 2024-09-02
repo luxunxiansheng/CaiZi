@@ -7,7 +7,7 @@ class TestDatasourceProcessor(unittest.TestCase):
         processor = DatasourceProcessor(source_format="parquet")
         path = {"item": "/workspaces/CaiZi/dataset/openwebtext/shards/shard_0.parquet"}
         result = processor(path)
-        print(result[0]["text"])
+        print(result["text"])
       
 
 if __name__ == "__main__":

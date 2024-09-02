@@ -45,6 +45,7 @@ class TikTokenizer(TokenProcessor):
     def __call__(self, input_text:Dict[str,str]) -> Dict[str, List[int]]:        
         train_text = input_text['train']        
         integers_train = self.tokenizer.encode(train_text,allowed_special={"<|endoftext|>"})
+        
 
         validate = input_text["validate"]
         integers_validate = self.tokenizer.encode(validate,allowed_special={"<|endoftext|>"})
