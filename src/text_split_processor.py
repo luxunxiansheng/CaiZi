@@ -19,8 +19,7 @@ class TextSplitProcessor():
        
             
     def __call__(self, text: Dict[str,str]) -> Dict[str, str]:
-    
-        
+
         raw_text = text["text"]
 
         raw_length = len(raw_text) 

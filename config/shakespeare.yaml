@@ -3,11 +3,11 @@ project_root:
 output_dir: ${project_root}/outputs
 model_weights_dir: ${project_root}/model_weights
 
-text_dataset:
+dataset:
   source:
     - name: "tiny_shakespeare"
       path: ${project_root}/dataset/tiny_shakespeare.txt
-  processed: ${project_root}/dataset/tiny_shakespeare.parquet
+  chunked_tokens: ${project_root}/dataset/tiny_shakespeare.parquet
 
 
 

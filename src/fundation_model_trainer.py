@@ -105,15 +105,8 @@ class RayGPT2FundationModelTrainer():
         chunk_processor = ChunkProcessor(block_size=block_size, stride=stride)
         chunked_tokens = tokens.map(chunk_processor)
 
-        train_chunked_tokens = []
-        validate_chunked_tokens = []
 
-        for item in chunked_tokens.iter_rows():
-            train_chunked_tokens.extend(item["train"])
-            validate_chunked_tokens.extend(item["validate"])
 
-        self.train_chunked_tokens = ray.data.from_items(train_chunked_tokens)
-        self.validate_chunked_tokens = ray.data.from_items(validate_chunked_tokens)
 
      
     def self_supervised_train(self):
@@ -145,12 +138,25 @@ class RayGPT2FundationModelTrainer():
             "data_type": self.cfg["ray_train"]["data_type"],
           
         }
+
+        
+
+        train_chunked_tokens = []
+        validate_chunked_tokens = []
+        chunked_tokens = ray.data.read_parquet(self.cfg["ray_data"]["chunked_tokens"])
+        for item in chunked_tokens.iter_rows():
+            train_chunked_tokens.extend(item["train"])
+            validate_chunked_tokens.extend(item["validate"])
+
+        train_chunked_tokens = ray.data.from_items(train_chunked_tokens)
+        validate_chunked_tokens = ray.data.from_items(validate_chunked_tokens)
+
         trainer = ray.train.torch.TorchTrainer(
             train_loop_per_worker=RayGPT2FundationModelTrainer._train_workload_per_worker,
             train_loop_config=train_loop_config,
             datasets={
-                "train": self.train_chunked_tokens,
-                "validate": self.validate_chunked_tokens,
+                "train": train_chunked_tokens,
+                "validate": validate_chunked_tokens,
             },
             dataset_config=ray.train.DataConfig(
                 datasets_to_split=["train"], # only split the train dataset into shards

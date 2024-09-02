@@ -15,7 +15,6 @@ from abc import abstractmethod
 
 from typing import Dict, List
 
-from attr import validate
 import torch
 
 import tiktoken
@@ -38,6 +37,27 @@ class TokenProcessor(ABC):
         else:
             raise ValueError("Unknown TokenProcessor")
     
+
+class TikTokenizer(TokenProcessor):
+    def __init__(self,name:str="gpt2"):
+        self.tokenizer = tiktoken.get_encoding(name)
+  
+    def __call__(self, input_text:Dict[str,str]) -> Dict[str, List[int]]:        
+        train_text = input_text['train']        
+        integers_train = self.tokenizer.encode(train_text,allowed_special={"<|endoftext|>"})
+
+        validate = input_text["validate"]
+        integers_validate = self.tokenizer.encode(validate,allowed_special={"<|endoftext|>"})
+
+        return {"train": integers_train,"validate": integers_validate}
+        
+    def decode(self, input_ids:List[int]) -> str:       
+        return self.tokenizer.decode(input_ids)
+        
+    def encode(self, text:str) -> torch.Tensor:
+        encoded = self.tokenizer.encode(text,allowed_special={"<|endoftext|>"})
+        return  torch.tensor(encoded).unsqueeze(0)
+
 
 class CharTokenizer(TokenProcessor):
     def __init__(self,unique_chars:List[str]):
@@ -68,22 +88,3 @@ class CharTokenizer(TokenProcessor):
         unique_chars = set(text)
         return sorted(list(unique_chars))
 
-class TikTokenizer(TokenProcessor):
-    def __init__(self,name:str="gpt2"):
-        self.tokenizer = tiktoken.get_encoding(name)
-  
-    def __call__(self, input_text:Dict[str,str]) -> Dict[str, List[int]]:        
-        train_text = input_text['train']        
-        integers_train = self.tokenizer.encode(train_text,allowed_special={"<|endoftext|>"})
-
-        validate = input_text["validate"]
-        integers_validate = self.tokenizer.encode(validate,allowed_special={"<|endoftext|>"})
-
-        return {"train": integers_train,"validate": integers_validate}
-        
-    def decode(self, input_ids:List[int]) -> str:       
-        return self.tokenizer.decode(input_ids)
-        
-    def encode(self, text:str) -> torch.Tensor:
-        encoded = self.tokenizer.encode(text,allowed_special={"<|endoftext|>"})
-        return  torch.tensor(encoded).unsqueeze(0)

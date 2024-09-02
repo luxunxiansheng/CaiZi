@@ -1,5 +1,9 @@
 FROM pytorch/pytorch:2.4.0-cuda12.1-cudnn9-runtime
 
+ARG http_proxy
+ARG https_proxy                                                  
+                                                  
+
 
 RUN sed -i 's|http://archive.ubuntu.com/ubuntu/|https://mirrors.tuna.tsinghua.edu.cn/ubuntu/|g' /etc/apt/sources.list && \
     apt-get update && \
@@ -25,10 +29,8 @@ RUN ln -s /usr/local/bin/bazelisk /usr/local/bin/bazel
 
 # Install Buildifier
 ENV BUILDIFIER_VERSION=7.3.1
-RUN curl -L -o /usr/local/bin/buildifier \
-    "https://github.com/bazelbuild/buildtools/releases/download/${BUILDIFIER_VERSION}/buildifier-linux-amd64" \
+RUN wget -O /usr/local/bin/buildifier https://github.com/bazelbuild/buildtools/releases/download/v${BUILDIFIER_VERSION}/buildifier-linux-amd64 \
     && chmod +x /usr/local/bin/buildifier
-
 
 
 # install grafana
@@ -47,9 +49,6 @@ RUN wget https://github.com/prometheus/prometheus/releases/download/v${PROMETHEU
     && mv prometheus-${PROMETHEUS_VERSION}.linux-amd64/console_libraries /etc/prometheus/ \
     && mv prometheus-${PROMETHEUS_VERSION}.linux-amd64/prometheus.yml /etc/prometheus/ \
     && rm -rf prometheus-${PROMETHEUS_VERSION}.linux-amd64* 
-
-ENTRYPOINT ["/usr/local/bin/prometheus"]
-CMD ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.path=/var/lib/prometheus", "--web.console.libraries=/etc/prometheus/console_libraries", "--web.console.templates=/etc/prometheus/consoles"
 
 
 # Install pip-tools
