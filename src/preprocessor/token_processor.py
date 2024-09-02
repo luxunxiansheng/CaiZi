@@ -43,14 +43,9 @@ class TikTokenizer(TokenProcessor):
         self.tokenizer = tiktoken.get_encoding(name)
   
     def __call__(self, input_text:Dict[str,str]) -> Dict[str, List[int]]:        
-        train_text = input_text['train']        
-        integers_train = self.tokenizer.encode(train_text,allowed_special={"<|endoftext|>"})
-        
-
-        validate = input_text["validate"]
-        integers_validate = self.tokenizer.encode(validate,allowed_special={"<|endoftext|>"})
-
-        return {"train": integers_train,"validate": integers_validate}
+        text = input_text['text']        
+        integers = self.tokenizer.encode(text,allowed_special={"<|endoftext|>"})
+        return {"token": integers}
         
     def decode(self, input_ids:List[int]) -> str:       
         return self.tokenizer.decode(input_ids)
@@ -67,14 +62,11 @@ class CharTokenizer(TokenProcessor):
         self.idx2char = {idx:char for idx,char in enumerate(unique_chars)}
     
     def __call__(self, input_text:Dict[str,str]) -> Dict[str, List[int]]:
-        train_text = input_text['train']     
+        text = input_text['text']     
         assert self.char2idx is not None, "Ensure you have at least one unique character"   
-        train_integers = [self.char2idx[char] for char in train_text]
+        integers = [self.char2idx[char] for char in text]
 
-        validate_text = input_text['validate']
-        integers_validate = [self.char2idx[char] for char in validate_text]
-
-        return {"train": train_integers,"validate": integers_validate}
+        return {"token": integers}
         
     def decode(self, input_ids:List[int]) -> str:
         assert self.idx2char is not None, "Ensure you have at least one unique character"

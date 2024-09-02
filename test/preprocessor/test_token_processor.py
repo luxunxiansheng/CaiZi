@@ -1,9 +1,7 @@
-from enum import unique
-from math import e
 import unittest
 
 from preprocessor.text_split_processor import TextSplitProcessor
-from preprocessor.token_processor import CharTokenizer, TikTokenizer, TokenProcessor
+from preprocessor.token_processor import CharTokenizer, TokenProcessor
 from config import gpt2_cfg, gpt2_nano_cfg
 
 #@unittest.skip("Skip this test")
@@ -17,11 +15,10 @@ class TestTokenProcessor(unittest.TestCase):
         token_processor_class= TokenProcessor.create(token_processor_class_name)
         token_processor= token_processor_class(**token_processor_args)
         
-        raw_text= {"train": "Hello,In the sunlit terraces of someunknownPlace.",
-                   "validate": "Hell,world."}
+        raw_text= {"text": "Hello,In the sunlit terraces of someunknownPlace."}
         
         encoded_text = token_processor(raw_text)
-        print((encoded_text["train"]))
+        print((encoded_text["token"]))
         
  
 
@@ -35,10 +32,10 @@ class TestCharTokenizer(unittest.TestCase):
         token_processor_args = gpt2_nano_cfg["ray_data"]['tokenizer_class']['args']
 
         token_processor = CharTokenizer(**token_processor_args)
-        encoded_text = token_processor({"train":raw_text,"validate":raw_text})
-        print(len(encoded_text["train"]))
+        encoded_text = token_processor({"text":raw_text})
+        print(len(encoded_text["token"]))
         
-        print(token_processor.decode(encoded_text["train"]))
+        print(token_processor.decode(encoded_text["token"]))
 
 
 

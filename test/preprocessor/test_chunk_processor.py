@@ -15,13 +15,18 @@ class TestChunkProcessor(unittest.TestCase):
     def test_chunk_processor(self):
         
         chunk_processor = ChunkProcessor()
-        data = {"train": [1,2,3,4,5],
-                "validate": [6,7,8,9,10]}
+        data = {"token": [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]}
+              
 
         data_items = chunk_processor(data)
         
-        print(data_items["train"])
-        print(data_items["validate"])
+        print(data_items[0]["input_ids"])
+        print(data_items[0]["target_ids"])
+    
+        print("*********************************")
+   
+        print(data_items[1]["input_ids"])
+        print(data_items[1]["target_ids"])
         
 
 if __name__ == "__main__":
