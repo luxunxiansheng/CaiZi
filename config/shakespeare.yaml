@@ -5,7 +5,7 @@ model_weights_dir: ${project_root}/model_weights
 
 dataset:
   name: "tiny_shakespeare"
-  path: ${project_root}/dataset/shakespeare_char
+  path: ${project_root}/dataset/shakespeare_char/shards
   chunked_tokens: ${project_root}/dataset/shakespeare_char/chunked_tokens
 
 
@@ -45,7 +45,7 @@ ray_train:
   gradient_accumulation_steps: 1
   physical_training_batch_size_per_worker: 64
   physical_validate_batch_size_per_worker: 64
-  num_epoch_per_worker: 50
+  num_epoch_per_worker: 35
 
   # Training output
   storage_path: ${output_dir}/gpt2
