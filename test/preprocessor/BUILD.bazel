@@ -26,11 +26,4 @@ py_test(
     ],
 )
 
-py_test(
-    name= "test_text_split_processor",
-    srcs = ["test_text_split_processor.py"],
-    deps = [
-       "//src:config", 
-       "//src/preprocessor:text_split_processor",      
-    ],
-)
+

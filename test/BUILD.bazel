@@ -26,6 +26,7 @@ py_test(
 py_test(
     name = "test_fundation_model_trainer",
     srcs = ["test_fundation_model_trainer.py"],
+    data = ["//dataset:dataset"],
     deps = [
         "//src:config", 
         "//src:fundation_model_trainer",      

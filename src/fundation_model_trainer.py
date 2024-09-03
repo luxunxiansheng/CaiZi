@@ -11,7 +11,6 @@
 
 import os
 import inspect
-from pathlib import Path
 
 import time
 from typing import Optional
@@ -23,10 +22,7 @@ import torch
 import torchmetrics
 import ray
 
-from preprocessor.datasource_processor import DatasourceProcessor
-from preprocessor.text_split_processor import TextSplitProcessor
-from preprocessor.chunk_processor import ChunkProcessor
-from preprocessor.token_processor import TokenProcessor
+
 from model.GPT import GPT
 from model.gpt_lr_scheduler import GPTLRScheduler
 import  utility 
@@ -81,10 +77,8 @@ class RayGPT2FundationModelTrainer():
         ray.shutdown()    
 
     def load_data(self):
-        
-        chunked_tokens = ray.data.read_parquet(self.cfg["dataset"]["chunked_tokens"])
-        self.train_chunked_tokens = chunked_tokens
-        self.validate_chunked_tokens = chunked_tokens.select_columns(["validate"])
+        self.train_chunked_tokens = ray.data.read_parquet(self.cfg["dataset"]["chunked_tokens"]+"/train")
+        self.validate_chunked_tokens = ray.data.read_parquet(self.cfg["dataset"]["chunked_tokens"]+"/validate")
 
      
     def self_supervised_train(self):
