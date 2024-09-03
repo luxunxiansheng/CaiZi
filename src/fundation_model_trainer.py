@@ -268,20 +268,22 @@ class RayGPT2FundationModelTrainer():
         
         print(f"total_tokens_per_logical_batch_per_worker: {logical_batch_size_per_worker*block_size}")
         
-        global_step = 0
         
         for epoch in range(epoch_start + 1, num_epoch_per_worker + 1):
             current_rank = ray.train.get_context().get_world_rank()
             report_metrics["rank"] = current_rank
             report_metrics["epoch"] = epoch
-        
+         
+            global_step = 0
             token_processed = 0
             epoch_train_loss = 0
             physical_batch_count = 0
             t0 = time.time()
 
             model.train()
-            for logical_batch in train_data_shard.iter_torch_batches(batch_size=logical_batch_size_per_worker,drop_last=False,local_shuffle_buffer_size=1000,):
+            for logical_batch in train_data_shard.iter_torch_batches(batch_size=logical_batch_size_per_worker,
+                                                                     drop_last=False,
+                                                                     local_shuffle_buffer_size=1000):
              
                 logical_input_ids = logical_batch["input_ids"]
                 logical_target_ids = logical_batch["target_ids"]

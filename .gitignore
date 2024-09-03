@@ -17,11 +17,6 @@ model_weights/*
 !model_weights/BUILD.bazel
 data/
 dataset/*
-!dataset/shakespeare_char/prepare.py
-!dataset/shakespeare_char/README.md
-!dataset/openwebtext/prepare.py
-!dataset/openwebtext/README.md
-
 
 
 requirements.txt
