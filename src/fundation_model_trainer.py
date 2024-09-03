@@ -379,7 +379,6 @@ class RayGPT2FundationModelTrainer():
             mean_validate_loss_metric.reset()
             report_metrics["validate_loss"] = validate_loss
 
-
             if perplexity < best_perplexity:
                 best_perplexity = perplexity
                 best_epoch = epoch
@@ -406,20 +405,20 @@ class RayGPT2FundationModelTrainer():
                         best_checkpoint_dir,
                     )
 
-                    # save the latest checkpoint periodically
-                    if epoch % check_frequency == 0:
-                        if not os.path.exists(latest_checkpoint_dir):
-                            os.makedirs(latest_checkpoint_dir)
+            # save the latest checkpoint periodically
+            if epoch % check_frequency == 0:
+                if ray.train.get_context().get_world_rank() == 0:   
+                    if not os.path.exists(latest_checkpoint_dir):
+                        os.makedirs(latest_checkpoint_dir)
 
-                        utility.save_checkpoint(
-                            model,
-                            optimizer,
-                            scaler,
-                            epoch,
-                            perplexity,
-                            latest_checkpoint_dir,
-                        )
-
+                    utility.save_checkpoint(
+                        model,
+                        optimizer,
+                        scaler,
+                        epoch,
+                        perplexity,
+                        latest_checkpoint_dir,
+                    )
             ray.train.report(metrics=report_metrics)
 
     @staticmethod

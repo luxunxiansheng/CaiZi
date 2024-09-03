@@ -38,7 +38,6 @@
     "vscode": {
       "extensions": [
         "ms-python.python",
-        "ms-azuretools.vscode-docker",
         "ms-toolsai.jupyter",
         "esbenp.prettier-vscode",
         "BazelBuild.vscode-bazel",
@@ -71,8 +70,5 @@
       ]
     }
   },
-  "features": {
-    //"ghcr.io/balazs23/devcontainers-features/bazel:1": {},
-   
-  }
+
 }
