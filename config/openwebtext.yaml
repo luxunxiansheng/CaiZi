@@ -1,7 +1,7 @@
 project_root:
 
 output_dir: ${project_root}/outputs
-model_weights_dir: ${project_root}/model_weights
+model_weights_dir: ${project_root}/model_weights/openwebtext
 
 dataset:
   name: "openwebtext"
@@ -37,12 +37,12 @@ ray_train:
   num_cpus_per_worker: 1
 
   resume_training: False
-  check_frequency: 4
+  check_frequency: 1
 
-  gradient_accumulation_steps: 1
-  physical_training_batch_size_per_worker: 64
-  physical_validate_batch_size_per_worker: 64
-  num_epoch_per_worker: 80
+  gradient_accumulation_steps: 40
+  physical_training_batch_size_per_worker: 8
+  physical_validate_batch_size_per_worker: 8
+  num_epoch_per_worker: 20
 
   storage_path: ${output_dir}/openwebtext
 

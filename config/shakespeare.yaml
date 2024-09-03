@@ -1,7 +1,7 @@
 project_root:
 
 output_dir: ${project_root}/outputs
-model_weights_dir: ${project_root}/model_weights
+model_weights_dir: ${project_root}/model_weights/shakespeare
 
 dataset:
   name: "tiny_shakespeare"
