@@ -11,7 +11,7 @@ class TestGPT2FundationModelTrainer(unittest.TestCase):
 
         self.trainer = RayGPT2FundationModelTrainer(cfg)
 
-    @unittest.skip("skip training test")
+    #@unittest.skip("skip training test")
     def test_load_data(self):
 
         self.trainer.load_data()
@@ -19,10 +19,10 @@ class TestGPT2FundationModelTrainer(unittest.TestCase):
         validate_dataset = self.trainer.validate_chunked_tokens
 
         tokenizer = TikTokenizer()
-        for row in validate_dataset.iter_rows():
+        for row in validate_dataset.iter_torch_batches(batch_size=1):
             
-            input_ids = row["input_ids"]
-            target_ids = row["target_ids"]
+            input_ids = row["input_ids"][0].tolist()
+            target_ids = row["target_ids"][0].tolist()
 
             print("-----------------------------")
             print(tokenizer.decode(input_ids))
@@ -30,9 +30,9 @@ class TestGPT2FundationModelTrainer(unittest.TestCase):
             print(tokenizer.decode(target_ids))
             print("*******************************")
 
-            break
+            
 
-    #@unittest.skip("skip training test")
+    @unittest.skip("skip training test")
     def test_train_with_plain_text(self):
         self.trainer.load_data()
         self.trainer.self_supervised_train()

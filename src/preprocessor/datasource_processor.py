@@ -13,6 +13,9 @@ from typing import  Dict
 import pyarrow.parquet as pq
 
 class DatasourceProcessor():
+    TEXT = "text"
+    PARQUET = "parquet"
+
     def __init__(self, source_format: str = "text"):
         self.source_format = source_format
 
