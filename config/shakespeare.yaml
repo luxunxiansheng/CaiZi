@@ -45,7 +45,7 @@ ray_train:
   gradient_accumulation_steps: 1
   physical_training_batch_size_per_worker: 64
   physical_validate_batch_size_per_worker: 64
-  num_epoch_per_worker: 30
+  num_epoch_per_worker: 50
 
   # Training output
   storage_path: ${output_dir}/gpt2

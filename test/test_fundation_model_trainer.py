@@ -5,13 +5,13 @@ from config import gpt2_nano_cfg as cfg
 from fundation_model_trainer import RayGPT2FundationModelTrainer
 from preprocessor.token_processor import TikTokenizer
 
-#@unittest.skip("skip training test")
+
 class TestGPT2FundationModelTrainer(unittest.TestCase):
     def setUp(self) -> None:
 
         self.trainer = RayGPT2FundationModelTrainer(cfg)
 
-    #@unittest.skip("skip training test")
+    @unittest.skip("skip training test")
     def test_load_data(self):
 
         self.trainer.load_data()
@@ -32,7 +32,7 @@ class TestGPT2FundationModelTrainer(unittest.TestCase):
 
             
 
-    @unittest.skip("skip training test")
+    #@unittest.skip("skip training test")
     def test_train_with_plain_text(self):
         self.trainer.load_data()
         self.trainer.self_supervised_train()
