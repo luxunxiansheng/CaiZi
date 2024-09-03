@@ -108,25 +108,16 @@ class RayGPT2FundationModelTrainer():
             "decay_lr": self.cfg["ray_train"]["decay_lr"],
             "weight_decay": self.cfg["ray_train"]["weight_decay"],
             "data_type": self.cfg["ray_train"]["data_type"],
-          
         }
 
-        train_chunked_tokens = []
-        validate_chunked_tokens = []
-        chunked_tokens = ray.data.read_parquet(self.cfg["dataset"]["chunked_tokens"])
-        for item in chunked_tokens.iter_rows():
-            train_chunked_tokens.extend(item["train"])
-            validate_chunked_tokens.extend(item["validate"])
 
-        train_chunked_tokens = ray.data.from_items(train_chunked_tokens)
-        validate_chunked_tokens = ray.data.from_items(validate_chunked_tokens)
 
         trainer = ray.train.torch.TorchTrainer(
             train_loop_per_worker=RayGPT2FundationModelTrainer._train_workload_per_worker,
             train_loop_config=train_loop_config,
             datasets={
-                "train": train_chunked_tokens,
-                "validate": validate_chunked_tokens,
+                "train":self.train_chunked_tokens,
+                "validate":self.validate_chunked_tokens,
             },
             dataset_config=ray.train.DataConfig(
                 datasets_to_split=["train"], # only split the train dataset into shards

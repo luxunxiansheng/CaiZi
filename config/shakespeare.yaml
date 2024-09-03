@@ -4,10 +4,9 @@ output_dir: ${project_root}/outputs
 model_weights_dir: ${project_root}/model_weights
 
 dataset:
-  source:
-    - name: "tiny_shakespeare"
-      path: ${project_root}/dataset/tiny_shakespeare.txt
-      chunked_tokens: ${project_root}/dataset/tiny_shakespeare.parquet
+  name: "tiny_shakespeare"
+  path: ${project_root}/dataset/shakespeare_char
+  chunked_tokens: ${project_root}/dataset/shakespeare_char/chunked_tokens
 
 
 
@@ -26,7 +25,7 @@ model:
   openai_gpt_dir: ${model_weights_dir}/openai
 
 ray_data:
-  train_ratio: 0.9
+  train_ratio: 0.8
   # Tokenizer
   tokenizer_class:
     name: CharTokenizer
