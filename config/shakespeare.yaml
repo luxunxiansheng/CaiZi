@@ -43,7 +43,7 @@ ray_train:
   check_frequency: 4
 
   gradient_accumulation_steps: 1
-  physical_training_batch_size_per_worker: 64
+  physical_training_batch_size_per_worker: 8
   physical_validate_batch_size_per_worker: 64
   
 
@@ -63,7 +63,7 @@ ray_train:
 
   # Scheduler
   warmup_steps: 100
-  max_steps: 2000
+  max_steps: 3000
   max_lr: 1e-3
   min_lr: 6e-5
   beta1: 0.9

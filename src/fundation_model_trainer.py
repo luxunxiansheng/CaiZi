@@ -217,7 +217,7 @@ class RayGPT2FundationModelTrainer():
         perplexity_metric,mean_validate_loss_metric = RayGPT2FundationModelTrainer._prepare_metric(device)
 
         # ====== Resume training state from the checkpoint. ======
-        global_logical_step = 0  #  Each accumulation step is a logical step
+        global_logical_step = 1  #  Each accumulation step is a logical step
         perplexity = float("inf")
         
         best_global_logical_step = 0
