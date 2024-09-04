@@ -37,7 +37,7 @@ class TestTextGenerator(unittest.TestCase):
 
         model = GPT(vocab_size, dimension_embedding, block_size,n_layers, num_header, drop_rate, bias)
         
-        load_model_from_checkpoint(model, cfg.project_root+"/best_checkpoint", device = torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+        load_model_from_checkpoint(model, cfg.model_weights_dir+"/best_checkpoint", device = torch.device("cuda" if torch.cuda.is_available() else "cpu"))
         
         
         model.eval()

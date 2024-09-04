@@ -13,6 +13,7 @@ import os
 import inspect
 
 import time
+from tracemalloc import stop
 from typing import Optional
 
 
@@ -95,7 +96,6 @@ class RayGPT2FundationModelTrainer():
             "gradient_accumulation_steps":self.cfg["ray_train"]["gradient_accumulation_steps"],
             "physical_training_batch_size_per_worker": self.cfg["ray_train"]["physical_training_batch_size_per_worker"],
             "physical_validate_batch_size_per_worker": self.cfg["ray_train"]["physical_validate_batch_size_per_worker"],
-            "num_epoch_per_worker": self.cfg["ray_train"]["num_epoch_per_worker"],
             "resume_training": self.cfg["ray_train"]["resume_training"],
             "best_checkpoint_dir": self.cfg["ray_train"]["best_checkpoint_dir"],
             "latest_checkpoint_dir": self.cfg["ray_train"]["latest_checkpoint_dir"],
@@ -154,7 +154,6 @@ class RayGPT2FundationModelTrainer():
         gradient_accumulation_steps = cfg["gradient_accumulation_steps"]
         physical_training_batch_size_per_worker = cfg["physical_training_batch_size_per_worker"]
         physical_validate_batch_size_per_worker = cfg["physical_validate_batch_size_per_worker"]
-        num_epoch_per_worker = cfg["num_epoch_per_worker"]
         resume_training = cfg["resume_training"]
         best_checkpoint_dir = cfg["best_checkpoint_dir"]
         latest_checkpoint_dir = cfg["latest_checkpoint_dir"]
@@ -223,9 +222,11 @@ class RayGPT2FundationModelTrainer():
 
         # ====== Resume training state from the checkpoint. ======
         global_logical_step = 0  #  Each accumulation step is a logical step
-        best_perplexity = float("inf")
+        perplexity = float("inf")
+        
         best_global_logical_step = 0
-
+        best_perplexity = float("inf")
+    
         if resume_training:
             logical_step,perplexity  = (
                 RayGPT2FundationModelTrainer._resume_training(latest_checkpoint_dir, 
@@ -238,34 +239,35 @@ class RayGPT2FundationModelTrainer():
             print(f"Resuming training from the {logical_step}th logical step  with  perplexity {perplexity}")
     
             global_logical_step = logical_step
+            perplexity = perplexity
             
 
         report_metrics = {
-            "epoch": 0,
             "global_logical_step": global_logical_step,
+
             "token_per_second": 0.0,    # speed 
             "muf": 0.0,
         
             "train_loss": 0.0,
+            "validate_loss": 0.0,
+            "perplexity": perplexity,
         
             "norm": 0.0,
             "learning_rate": 0.0,
-            
-            "validate_loss": 0.0,
-            "perplexity": 0.0,
             
             "best_global_logical_step": best_global_logical_step,
             "best_perplexity": best_perplexity,
             "validate_loss_at_best_perplexity": 0.0,
         }
 
-        for epoch in range(num_epoch_per_worker):
-            
-            report_metrics["epoch"] = epoch
-            for logical_batch in train_data_shard.iter_torch_batches(batch_size=physical_training_batch_size_per_worker * gradient_accumulation_steps,
-                                                                     drop_last=False,
-                                                                     local_shuffle_buffer_size=1000):
-               
+        stop_training = False
+        while True:
+            for logical_batch in train_data_shard.iter_torch_batches(batch_size=physical_training_batch_size_per_worker * gradient_accumulation_steps,drop_last=False,local_shuffle_buffer_size=1000):               
+                global_logical_step += 1
+                if global_logical_step > max_steps:
+                    stop_training = True
+                    break
+                
                 model.train()
                 t0 = time.time()
                 token_processed = 0  
@@ -301,10 +303,6 @@ class RayGPT2FundationModelTrainer():
                     
                     token_processed += (physical_training_batch_size_per_worker * block_size)
 
-                global_logical_step += 1
-
-                if global_logical_step > max_steps:
-                    break
                 
                 # Unscales the gradients of optimizer's assigned parameters in-place for clipping.
                 scaler.unscale_(optimizer)
@@ -365,7 +363,7 @@ class RayGPT2FundationModelTrainer():
                     best_perplexity = perplexity
                     best_global_logical_step = global_logical_step
 
-                    report_metrics["global_logical_step"] = global_logical_step
+                    report_metrics["best_global_logical_step"] = best_global_logical_step
                     report_metrics["best_perplexity"] = best_perplexity
                     report_metrics["validate_loss_at_best_perplexity"] = validate_loss
 
@@ -383,7 +381,7 @@ class RayGPT2FundationModelTrainer():
                             optimizer,
                             scaler,
                             best_global_logical_step,
-                            perplexity,
+                            best_perplexity,
                             best_checkpoint_dir,
                         )
 
@@ -402,7 +400,8 @@ class RayGPT2FundationModelTrainer():
                             latest_checkpoint_dir,
                         )
                 ray.train.report(metrics=report_metrics)
-
+            if stop_training:
+                break
     @staticmethod
     def _prepare_gradient_scaler(use_amp: bool = True) -> torch.amp.GradScaler:
         return torch.amp.GradScaler(enabled=use_amp)

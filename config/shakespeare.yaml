@@ -19,7 +19,7 @@ model:
   dimension_embedding: 384 # embedding dimension
   num_layers: 6 # number of layers
   num_headers: 6 # number of heads
-  drop_rate: 0.2 # dropout rate
+  drop_rate: 0.0 # dropout rate
   bias: False # whether to use bias in attention layer
 
   openai_gpt_dir: ${model_weights_dir}/openai
@@ -39,13 +39,13 @@ ray_train:
   num_gpus_per_worker: 1
   num_cpus_per_worker: 1
 
-  resume_training: True
+  resume_training: False
   check_frequency: 4
 
   gradient_accumulation_steps: 1
   physical_training_batch_size_per_worker: 64
   physical_validate_batch_size_per_worker: 64
-  num_epoch_per_worker: 40
+  
 
   # Training output
   storage_path: ${output_dir}/gpt2
@@ -64,7 +64,7 @@ ray_train:
 
   # Scheduler
   warmup_steps: 100
-  max_steps: 5000
+  max_steps: 2000
   max_lr: 1e-3
   min_lr: 6e-5
   beta1: 0.9
