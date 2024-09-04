@@ -16,6 +16,7 @@ import time
 from typing import Optional
 
 
+from attr import validate
 import ray.train
 import ray.train.torch
 import torch
@@ -221,12 +222,12 @@ class RayGPT2FundationModelTrainer():
         perplexity_metric,mean_validate_loss_metric = RayGPT2FundationModelTrainer._prepare_metric(device)
 
         # ====== Resume training state from the checkpoint. ======
-        epoch_start = 0
+        global_logical_step = 0  #  Each accumulation step is a logical step
         best_perplexity = float("inf")
-        best_epoch = 0
+        best_global_logical_step = 0
 
         if resume_training:
-            epoch,perplexity  = (
+            logical_step,perplexity  = (
                 RayGPT2FundationModelTrainer._resume_training(latest_checkpoint_dir, 
                                                               model, 
                                                               optimizer,
@@ -234,24 +235,18 @@ class RayGPT2FundationModelTrainer():
                                                               device)
                 )
             
-            print(f"Resuming training from epoch {epoch} with  perplexity {perplexity}")
-            
-            epoch_start = epoch
+            print(f"Resuming training from the {logical_step}th logical step  with  perplexity {perplexity}")
+    
+            global_logical_step = logical_step
             
 
         report_metrics = {
-            
-            "rank": rank,
-            "global_step": 0,
-            "epoch": epoch_start,
-            
-            "token_total": 0,  # total tokens processed
-            "token_process_time_ms": 0.0, # time in ms
+            "epoch": 0,
+            "global_logical_step": global_logical_step,
             "token_per_second": 0.0,    # speed 
             "muf": 0.0,
         
-            "epoch_train_loss": 0.0,
-            "physical_batch_count": 0,
+            "train_loss": 0.0,
         
             "norm": 0.0,
             "learning_rate": 0.0,
@@ -259,53 +254,41 @@ class RayGPT2FundationModelTrainer():
             "validate_loss": 0.0,
             "perplexity": 0.0,
             
-            "best_epoch": best_epoch,
+            "best_global_logical_step": best_global_logical_step,
             "best_perplexity": best_perplexity,
             "validate_loss_at_best_perplexity": 0.0,
         }
 
-        logical_batch_size_per_worker = physical_training_batch_size_per_worker * gradient_accumulation_steps
-        
-        print(f"total_tokens_per_logical_batch_per_worker: {logical_batch_size_per_worker*block_size}")
-        
-        
-        for epoch in range(epoch_start + 1, num_epoch_per_worker + 1):
-            current_rank = ray.train.get_context().get_world_rank()
-            report_metrics["rank"] = current_rank
+        for epoch in range(num_epoch_per_worker):
+            
             report_metrics["epoch"] = epoch
-         
-            global_step = 0
-            token_processed = 0
-            epoch_train_loss = 0
-            physical_batch_count = 0
-            t0 = time.time()
-
-            model.train()
-            for logical_batch in train_data_shard.iter_torch_batches(batch_size=logical_batch_size_per_worker,
+            for logical_batch in train_data_shard.iter_torch_batches(batch_size=physical_training_batch_size_per_worker * gradient_accumulation_steps,
                                                                      drop_last=False,
                                                                      local_shuffle_buffer_size=1000):
-             
+               
+                model.train()
+                t0 = time.time()
+                token_processed = 0  
+                train_loss = 0
                 logical_input_ids = logical_batch["input_ids"]
                 logical_target_ids = logical_batch["target_ids"]
-                
-                for step in range(gradient_accumulation_steps):
-                    start_index = step * physical_training_batch_size_per_worker
+
+                for accumulattion_step in range(gradient_accumulation_steps):
+                    start_index = accumulattion_step * physical_training_batch_size_per_worker
                     end_index = start_index + physical_training_batch_size_per_worker
                     
                     physical_input_ids_in_current_step = logical_input_ids[start_index : end_index]
                     physical_target_ids_in_current_step = logical_target_ids[start_index : end_index]
-                    
-                    
+                                        
                     # https://pytorch.org/tutorials/recipes/recipes/amp_recipe.html
                     with torch.autocast(device_type=device.type,dtype=floating_point_precision,enabled=use_amp,):
                         logits = model(physical_input_ids_in_current_step)
                         physical_loss = loss_function(logits.flatten(0, 1),physical_target_ids_in_current_step.flatten(),)
                         physical_loss = (physical_loss / gradient_accumulation_steps)  # normalize the loss to account for the gradient accumulation
-
                     
                     # require_backward_grad_sync is set to True for the last step in the gradient accumulation  
                     # to speed up the training process by reducing the synchronization overhead across workers.
-                    model.require_backward_grad_sync = (step == gradient_accumulation_steps - 1)
+                    model.require_backward_grad_sync = (accumulattion_step == gradient_accumulation_steps - 1)
                     
                     # Scales loss.  Calls backward() on scaled loss to create scaled gradients.
                     # Backward passes under autocast are not recommended.
@@ -313,11 +296,16 @@ class RayGPT2FundationModelTrainer():
                     scaler.scale(physical_loss).backward()
 
                     # for reporting
-                    epoch_train_loss += (physical_loss.detach().item())
-                    physical_batch_count += 1
-                    global_step += 1
+                    train_loss += physical_loss.item()
+                    
+                    
                     token_processed += (physical_training_batch_size_per_worker * block_size)
 
+                global_logical_step += 1
+
+                if global_logical_step > max_steps:
+                    break
+                
                 # Unscales the gradients of optimizer's assigned parameters in-place for clipping.
                 scaler.unscale_(optimizer)
                 norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
@@ -333,95 +321,87 @@ class RayGPT2FundationModelTrainer():
                 lr_scheduler.step()
                 optimizer.zero_grad(set_to_none=True)
 
-            assert physical_batch_count > 0, "physical_batch_count must be greater than 0"
+                # How fast the tokens are processed
+                t1 = time.time()
+                dt = t1 - t0
+                token_per_second = token_processed / dt            
+                report_metrics["token_per_second"] = token_per_second
 
-            epoch_train_loss = epoch_train_loss / physical_batch_count
-            report_metrics["epoch_train_loss"] = epoch_train_loss
-            report_metrics["physical_batch_count"] = physical_batch_count
-            report_metrics["global_step"] = global_step
+                # model flops utilization 
+                report_metrics["muf"] = model.estimate_mfu(token_per_second)
+                  
+                # report the training loss
+                report_metrics["train_loss"] = train_loss
+                report_metrics["global_logical_step"] = global_logical_step
 
-            t1 = time.time()
-            dt = t1 - t0
-            token_per_second = token_processed / dt            
-            report_metrics["token_total"] = token_processed
-            report_metrics["token_process_time_ms"] = dt * 1000
-            report_metrics["token_per_second"] = token_per_second
-            
-            report_metrics["muf"] = model.estimate_mfu(fwdbwd_per_iter=physical_batch_count*physical_training_batch_size_per_worker,
-                                                       dt=dt)
-
-            report_metrics["norm"] = norm.item()
-            report_metrics["learning_rate"] = optimizer.param_groups[0]["lr"]
-
-          
-        
-            validate_loss = 0
-            validate_batch_count = 0
-            model.eval()
-            with torch.no_grad():
-                for batch in validate_data_shard.iter_torch_batches(batch_size=physical_validate_batch_size_per_worker,drop_last=False,):
-                    validate_batch_count += 1
-                    input_ids = batch["input_ids"]
-                    target_ids = batch["target_ids"]
-
-                    with torch.autocast(device_type=device.type,dtype=floating_point_precision,enabled=use_amp,):
-                        logits = model(input_ids)
-                        loss = loss_function(logits.flatten(0, 1), target_ids.flatten())
-                        
-
-                    perplexity_metric.update(logits, target_ids)
-                    mean_validate_loss_metric(loss)
+                # report the norm and learning rate
+                report_metrics["norm"] = norm.item()
+                report_metrics["learning_rate"] = optimizer.param_groups[0]["lr"]
 
 
-            perplexity = perplexity_metric.compute().item()
-            perplexity_metric.reset()
-            report_metrics["perplexity"] = perplexity
+                model.eval()
+                with torch.no_grad():
+                    for batch in validate_data_shard.iter_torch_batches(batch_size=physical_validate_batch_size_per_worker,drop_last=False,):
+                        input_ids = batch["input_ids"]
+                        target_ids = batch["target_ids"]
 
-            validate_loss= mean_validate_loss_metric.compute().item()
-            mean_validate_loss_metric.reset()
-            report_metrics["validate_loss"] = validate_loss
+                        with torch.autocast(device_type=device.type,dtype=floating_point_precision,enabled=use_amp,):
+                            logits = model(input_ids)
+                            loss = loss_function(logits.flatten(0, 1), target_ids.flatten())
 
-            if perplexity < best_perplexity:
-                best_perplexity = perplexity
-                best_epoch = epoch
+                        perplexity_metric.update(logits, target_ids)
+                        mean_validate_loss_metric(loss)
 
-                report_metrics["best_epoch"] = best_epoch
-                report_metrics["best_perplexity"] = best_perplexity
-                report_metrics["validate_loss_at_best_perplexity"] = validate_loss
 
-                
-                # In standard DDP training, where the model is the same across all ranks,
-                # so only the global rank 0 worker needs to save and report the checkpoint
-                if  ray.train.get_context().get_world_rank() == 0:
+                perplexity = perplexity_metric.compute().item()
+                perplexity_metric.reset()
+                report_metrics["perplexity"] = perplexity
 
-                    # create the best_checkpoint_dir if it does not exist
-                    if not os.path.exists(best_checkpoint_dir):
-                        os.makedirs(best_checkpoint_dir)
+                validate_loss= mean_validate_loss_metric.compute().item()
+                mean_validate_loss_metric.reset()
+                report_metrics["validate_loss"] = validate_loss
 
-                    utility.save_checkpoint(
-                        model,
-                        optimizer,
-                        scaler,
-                        epoch,
-                        perplexity,
-                        best_checkpoint_dir,
-                    )
+                if perplexity < best_perplexity:
+                    best_perplexity = perplexity
+                    best_global_logical_step = global_logical_step
 
-            # save the latest checkpoint periodically
-            if epoch % check_frequency == 0:
-                if ray.train.get_context().get_world_rank() == 0:   
-                    if not os.path.exists(latest_checkpoint_dir):
-                        os.makedirs(latest_checkpoint_dir)
+                    report_metrics["global_logical_step"] = global_logical_step
+                    report_metrics["best_perplexity"] = best_perplexity
+                    report_metrics["validate_loss_at_best_perplexity"] = validate_loss
 
-                    utility.save_checkpoint(
-                        model,
-                        optimizer,
-                        scaler,
-                        epoch,
-                        perplexity,
-                        latest_checkpoint_dir,
-                    )
-            ray.train.report(metrics=report_metrics)
+                    
+                    # In standard DDP training, where the model is the same across all ranks,
+                    # so only the global rank 0 worker needs to save and report the checkpoint
+                    if  ray.train.get_context().get_world_rank() == 0:
+
+                        # create the best_checkpoint_dir if it does not exist
+                        if not os.path.exists(best_checkpoint_dir):
+                            os.makedirs(best_checkpoint_dir)
+
+                        utility.save_checkpoint(
+                            model,
+                            optimizer,
+                            scaler,
+                            best_global_logical_step,
+                            perplexity,
+                            best_checkpoint_dir,
+                        )
+
+                # save the latest checkpoint periodically
+                if global_logical_step % check_frequency == 0:
+                    if ray.train.get_context().get_world_rank() == 0:   
+                        if not os.path.exists(latest_checkpoint_dir):
+                            os.makedirs(latest_checkpoint_dir)
+
+                        utility.save_checkpoint(
+                            model,
+                            optimizer,
+                            scaler,
+                            global_logical_step,
+                            perplexity,
+                            latest_checkpoint_dir,
+                        )
+                ray.train.report(metrics=report_metrics)
 
     @staticmethod
     def _prepare_gradient_scaler(use_amp: bool = True) -> torch.amp.GradScaler:
