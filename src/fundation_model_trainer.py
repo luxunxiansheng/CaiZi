@@ -258,7 +258,9 @@ class RayGPT2FundationModelTrainer():
 
         stop_training = False
         while True:
-            iterator = iter(train_data_shard.iter_torch_batches(batch_size=physical_training_batch_size_per_worker,shuffle=True))           
+            iterator = iter(train_data_shard.iter_torch_batches(batch_size=physical_training_batch_size_per_worker,
+                                                                drop_last=True,
+                                                                local_shuffle_buffer_size=physical_training_batch_size_per_worker*30,))           
             exhausted = False
             while True:
                 if global_logical_step > max_steps:
@@ -305,7 +307,7 @@ class RayGPT2FundationModelTrainer():
                 if exhausted:
                     break
 
-                global_logical_step += 1
+                
                     
                 # Unscales the gradients of optimizer's assigned parameters in-place for clipping.
                 scaler.unscale_(optimizer)
@@ -351,7 +353,7 @@ class RayGPT2FundationModelTrainer():
                             loss = loss_function(logits.flatten(0, 1), target_ids.flatten())
 
                         perplexity_metric.update(logits, target_ids)
-                        mean_validate_loss_metric(loss)
+                        mean_validate_loss_metric.update(loss)
 
 
                 perplexity = perplexity_metric.compute().item()
@@ -402,6 +404,8 @@ class RayGPT2FundationModelTrainer():
                             perplexity,
                             latest_checkpoint_dir,
                         )
+                
+                global_logical_step += 1
                 ray.train.report(metrics=report_metrics)
 
             if stop_training:

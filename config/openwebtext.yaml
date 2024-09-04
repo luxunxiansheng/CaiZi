@@ -40,7 +40,7 @@ ray_train:
   check_frequency: 10
 
   gradient_accumulation_steps: 40
-  physical_training_batch_size_per_worker: 8
+  physical_training_batch_size_per_worker: 12
   physical_validate_batch_size_per_worker: 4
 
 
