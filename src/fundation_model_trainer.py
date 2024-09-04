@@ -13,11 +13,9 @@ import os
 import inspect
 
 import time
-from tracemalloc import stop
 from typing import Optional
 
 
-from attr import validate
 import ray.train
 import ray.train.torch
 import torch
@@ -110,8 +108,6 @@ class RayGPT2FundationModelTrainer():
             "weight_decay": self.cfg["ray_train"]["weight_decay"],
             "data_type": self.cfg["ray_train"]["data_type"],
         }
-
-
 
         trainer = ray.train.torch.TorchTrainer(
             train_loop_per_worker=RayGPT2FundationModelTrainer._train_workload_per_worker,
@@ -262,8 +258,9 @@ class RayGPT2FundationModelTrainer():
 
         stop_training = False
         while True:
-            for logical_batch in train_data_shard.iter_torch_batches(batch_size=physical_training_batch_size_per_worker * gradient_accumulation_steps,drop_last=False,local_shuffle_buffer_size=1000):               
-                global_logical_step += 1
+            iterator = iter(train_data_shard.iter_torch_batches(batch_size=physical_training_batch_size_per_worker,shuffle=True))           
+            exhausted = False
+            while True:
                 if global_logical_step > max_steps:
                     stop_training = True
                     break
@@ -272,25 +269,27 @@ class RayGPT2FundationModelTrainer():
                 t0 = time.time()
                 token_processed = 0  
                 train_loss = 0
-                logical_input_ids = logical_batch["input_ids"]
-                logical_target_ids = logical_batch["target_ids"]
+                
+                for step_index in range(gradient_accumulation_steps):                    
+                    try:
+                        physical_batch = next(iterator)
+                    # if the iterator is exhausted, break the loop and abandon the current logic step
+                    except StopIteration:  
+                        exhausted = True
+                        break
 
-                for accumulattion_step in range(gradient_accumulation_steps):
-                    start_index = accumulattion_step * physical_training_batch_size_per_worker
-                    end_index = start_index + physical_training_batch_size_per_worker
-                    
-                    physical_input_ids_in_current_step = logical_input_ids[start_index : end_index]
-                    physical_target_ids_in_current_step = logical_target_ids[start_index : end_index]
-                                        
+                    physical_input_ids =  physical_batch["input_ids"]
+                    physical_target_ids = physical_batch["target_ids"]
+                                
                     # https://pytorch.org/tutorials/recipes/recipes/amp_recipe.html
                     with torch.autocast(device_type=device.type,dtype=floating_point_precision,enabled=use_amp,):
-                        logits = model(physical_input_ids_in_current_step)
-                        physical_loss = loss_function(logits.flatten(0, 1),physical_target_ids_in_current_step.flatten(),)
+                        logits = model(physical_input_ids)
+                        physical_loss = loss_function(logits.flatten(0, 1),physical_target_ids.flatten(),)
                         physical_loss = (physical_loss / gradient_accumulation_steps)  # normalize the loss to account for the gradient accumulation
                     
                     # require_backward_grad_sync is set to True for the last step in the gradient accumulation  
                     # to speed up the training process by reducing the synchronization overhead across workers.
-                    model.require_backward_grad_sync = (accumulattion_step == gradient_accumulation_steps - 1)
+                    model.require_backward_grad_sync = (step_index == gradient_accumulation_steps - 1)
                     
                     # Scales loss.  Calls backward() on scaled loss to create scaled gradients.
                     # Backward passes under autocast are not recommended.
@@ -303,7 +302,11 @@ class RayGPT2FundationModelTrainer():
                     
                     token_processed += (physical_training_batch_size_per_worker * block_size)
 
-                
+                if exhausted:
+                    break
+
+                global_logical_step += 1
+                    
                 # Unscales the gradients of optimizer's assigned parameters in-place for clipping.
                 scaler.unscale_(optimizer)
                 norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
@@ -327,7 +330,7 @@ class RayGPT2FundationModelTrainer():
 
                 # model flops utilization 
                 report_metrics["muf"] = model.estimate_mfu(token_per_second)
-                  
+                    
                 # report the training loss
                 report_metrics["train_loss"] = train_loss
                 report_metrics["global_logical_step"] = global_logical_step
@@ -400,8 +403,10 @@ class RayGPT2FundationModelTrainer():
                             latest_checkpoint_dir,
                         )
                 ray.train.report(metrics=report_metrics)
+
             if stop_training:
                 break
+
     @staticmethod
     def _prepare_gradient_scaler(use_amp: bool = True) -> torch.amp.GradScaler:
         return torch.amp.GradScaler(enabled=use_amp)
