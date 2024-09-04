@@ -39,7 +39,7 @@ ray_train:
   num_gpus_per_worker: 1
   num_cpus_per_worker: 1
 
-  resume_training: False
+  resume_training: True
   check_frequency: 4
 
   gradient_accumulation_steps: 1

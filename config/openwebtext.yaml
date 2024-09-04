@@ -37,12 +37,12 @@ ray_train:
   num_cpus_per_worker: 1
 
   resume_training: False
-  check_frequency: 1
+  check_frequency: 10
 
   gradient_accumulation_steps: 40
   physical_training_batch_size_per_worker: 8
-  physical_validate_batch_size_per_worker: 8
-  num_epoch_per_worker: 20
+  physical_validate_batch_size_per_worker: 4
+
 
   storage_path: ${output_dir}/openwebtext
 
