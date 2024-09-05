@@ -39,10 +39,15 @@ ray_train:
   resume_training: False
   check_frequency: 10
 
-  gradient_accumulation_steps: 5
+ # In GPT3, its logical batch size is 0.5M (in tokens). According to the 
+ # block size of 1024, the logical batch size is about 512. If we take the 
+ # physical batch size as 8, the gradient accumulation steps is 64.
+ # The formula is: 
+ # Gradient Accumulation Steps = Logical Batch Size /Physical Batch Size
+ # where the Logical Batch Size = 0.5M / block_size
+  gradient_accumulation_steps: 64
   physical_training_batch_size_per_worker: 8
   physical_validate_batch_size_per_worker: 4
-
 
   storage_path: ${output_dir}/openwebtext
 
@@ -56,7 +61,7 @@ ray_train:
   
   weight_decay: 0.1
 
-  warmup_steps: 2e3
+  warmup_steps: 700
   max_steps: 6e5
   max_lr: 6e-4
   min_lr: 6e-5
