@@ -39,8 +39,8 @@ ray_train:
   resume_training: False
   check_frequency: 10
 
-  gradient_accumulation_steps: 40
-  physical_training_batch_size_per_worker: 12
+  gradient_accumulation_steps: 5
+  physical_training_batch_size_per_worker: 8
   physical_validate_batch_size_per_worker: 4
 
 

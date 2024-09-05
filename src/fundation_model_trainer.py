@@ -70,14 +70,14 @@ class RayGPT2FundationModelTrainer():
         )
 
         # convience for debugging
-        ray.data.DataContext.get_current().execution_options.verbose_progress = False
+        ray.data.DataContext.get_current().execution_options.verbose_progress = True
         ray.data.DataContext.log_internal_stack_trace_to_stdout = False
     
     def stop_ray(self): 
         ray.shutdown()    
 
     def load_data(self):
-        self.train_chunked_tokens = ray.data.read_parquet(self.cfg["dataset"]["chunked_tokens"]+"/train")
+        self.train_chunked_tokens = ray.data.read_parquet(self.cfg["dataset"]["chunked_tokens"]+"/train",override_num_blocks=100,ray_remote_args={"num_cpus": 4})
         self.validate_chunked_tokens = ray.data.read_parquet(self.cfg["dataset"]["chunked_tokens"]+"/validate")
 
      
@@ -256,17 +256,21 @@ class RayGPT2FundationModelTrainer():
             "validate_loss_at_best_perplexity": 0.0,
         }
 
+        # Training loop
         stop_training = False
         while True:
             iterator = iter(train_data_shard.iter_torch_batches(batch_size=physical_training_batch_size_per_worker,
                                                                 drop_last=True,
                                                                 local_shuffle_buffer_size=physical_training_batch_size_per_worker*30,))           
+            
+            # Single epoch loop
             exhausted = False
             while True:
                 if global_logical_step > max_steps:
                     stop_training = True
                     break
                 
+                # One logical step
                 model.train()
                 t0 = time.time()
                 token_processed = 0  
@@ -306,8 +310,6 @@ class RayGPT2FundationModelTrainer():
 
                 if exhausted:
                     break
-
-                
                     
                 # Unscales the gradients of optimizer's assigned parameters in-place for clipping.
                 scaler.unscale_(optimizer)
@@ -354,7 +356,6 @@ class RayGPT2FundationModelTrainer():
 
                         perplexity_metric.update(logits, target_ids)
                         mean_validate_loss_metric.update(loss)
-
 
                 perplexity = perplexity_metric.compute().item()
                 perplexity_metric.reset()
