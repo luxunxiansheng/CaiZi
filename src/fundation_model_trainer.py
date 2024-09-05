@@ -77,8 +77,18 @@ class RayGPT2FundationModelTrainer():
         ray.shutdown()    
 
     def load_data(self):
-        self.train_chunked_tokens = ray.data.read_parquet(self.cfg["dataset"]["chunked_tokens"]+"/train",override_num_blocks=100,ray_remote_args={"num_cpus": 4})
-        self.validate_chunked_tokens = ray.data.read_parquet(self.cfg["dataset"]["chunked_tokens"]+"/validate")
+
+        train_override_num_blocks = self.cfg["ray_train"]["read_train_data"]["override_num_blocks"]
+        train_cpu_nums = self.cfg["ray_train"]["read_train_data"]["num_cpus"]  if self.cfg["ray_train"]["read_train_data"]["num_cpus"]  else 1 
+        self.train_chunked_tokens = ray.data.read_parquet(self.cfg["dataset"]["chunked_tokens"]+"/train",
+                                                          override_num_blocks=train_override_num_blocks,
+                                                          ray_remote_args={"num_cpus": train_cpu_nums})
+        
+        validate_override_num_blocks = self.cfg["ray_train"]["read_validate_data"]["override_num_blocks"]
+        validate_cpu_nums = self.cfg["ray_train"]["read_validate_data"]["num_cpus"] if self.cfg["ray_train"]["read_validate_data"]["num_cpus"] else 1
+        self.validate_chunked_tokens = ray.data.read_parquet(self.cfg["dataset"]["chunked_tokens"]+"/validate",
+                                                             override_num_blocks=validate_override_num_blocks,
+                                                             ray_remote_args={"num_cpus": validate_cpu_nums})
 
      
     def self_supervised_train(self):
@@ -259,13 +269,18 @@ class RayGPT2FundationModelTrainer():
         # Training loop
         stop_training = False
         while True:
-            iterator = iter(train_data_shard.iter_torch_batches(batch_size=physical_training_batch_size_per_worker,
+            
+            print(f"global_logical_step: {global_logical_step}")
+
+            iterator = iter(train_data_shard.iter_torch_batches(prefetch_batches= physical_training_batch_size_per_worker*2,
+                                                                batch_size=physical_training_batch_size_per_worker,
                                                                 drop_last=True,
                                                                 local_shuffle_buffer_size=physical_training_batch_size_per_worker*30,))           
             
             # Single epoch loop
             exhausted = False
             while True:
+                print(f"global_logical_step: {global_logical_step}")
                 if global_logical_step > max_steps:
                     stop_training = True
                     break
@@ -346,7 +361,9 @@ class RayGPT2FundationModelTrainer():
 
                 model.eval()
                 with torch.no_grad():
-                    for batch in validate_data_shard.iter_torch_batches(batch_size=physical_validate_batch_size_per_worker,drop_last=False,):
+                    for batch in validate_data_shard.iter_torch_batches(prefetch_batches= physical_validate_batch_size_per_worker*2,
+                                                                        batch_size=physical_validate_batch_size_per_worker,
+                                                                        drop_last=False,):
                         input_ids = batch["input_ids"]
                         target_ids = batch["target_ids"]
 
@@ -407,6 +424,9 @@ class RayGPT2FundationModelTrainer():
                         )
                 
                 global_logical_step += 1
+
+                print(f"validate_loss: {validate_loss}, perplexity: {perplexity}, best_perplexity: {best_perplexity}")
+
                 ray.train.report(metrics=report_metrics)
 
             if stop_training:

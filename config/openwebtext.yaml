@@ -31,6 +31,14 @@ ray_data:
       
 
 ray_train:
+  read_train_data:
+     override_num_blocks: 10
+     num_cpus : 8
+  
+  read_validate_data:
+     override_num_blocks: 10
+     num_cpus : 8
+
   num_workers:  1
   use_gpu: True
   num_gpus_per_worker: 1
@@ -45,8 +53,8 @@ ray_train:
  # The formula is: 
  # Gradient Accumulation Steps = Logical Batch Size /Physical Batch Size
  # where the Logical Batch Size = 0.5M / block_size
-  gradient_accumulation_steps: 64
-  physical_training_batch_size_per_worker: 8
+  gradient_accumulation_steps: 1
+  physical_training_batch_size_per_worker: 12
   physical_validate_batch_size_per_worker: 4
 
   storage_path: ${output_dir}/openwebtext
