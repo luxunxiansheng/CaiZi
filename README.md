@@ -1,8 +1,28 @@
 # Caizi 才子
 
-## Description
+<img src="cover.png" width="40%">
 
-A self-happiness project that aims to write a novel in Chinese. The novel will be written assisted by Large Language Models (LLMs) which will be built from scratch. The project will be written in Python and will be open-source.
+
+## Description
+This project aims to create a digital talent (才子) who can write novels, paint, and compose music. Under the hood, the lastest AI  will be used, such as GPT-like  family, diffusion models  and other generative technologies. To a large sense, the project is of educational purpose, to learn the latest AI technologies and to have fun.
+
+The project also pays attention to the following aspects:
+
+1. Software engineering best practices:
+  -  Object-oriented programming for better code organization, readability, and maintainability 
+  -  Test-driven development for better code quality
+  -  Continuous build and integration for better code quality
+
+2. Distributed computing:
+  - Hetoerogeneous computing with consitent framework
+  - Easy to scale up and down
+  - Easy to develop and deploy 
+   
+
+----------------------------------------------
+For now, as the first step, the project will focus on the text generation part.  
+There have been lots of GPT-2 implementations on web, but in this project, the focus is on the educational aspect, to learn the model from scratch, to understand the model, to implement the model, to train the model, to fine-tune the model, to evaluate the model, to deploy the model, and to use the model.
+
 
 ## Table of Contents
 
@@ -16,6 +36,7 @@ A self-happiness project that aims to write a novel in Chinese. The novel will b
   - [Tools](#tools)
   - [Contributing](#contributing)
   - [License](#license)
+  - [Reference](#reference)
 
 ## Installation
 
@@ -35,14 +56,16 @@ The entire process is automated and might take a few minutes, depending on your 
 Once completed, VS Code will automatically connect to the container and reopen the project within the newly created Docker development environment. You will be able to write, execute, and debug code as if it were running on your local machine, but with the added benefits of Docker's isolation and consistency.
 
 > [!WARNING]
+> It is a must to run with GPU support, as the project will use the latest AI models, which are computationally expensive.
+
+> [!WARNING]
 > If you are encountering an error during the build process, this is likely because your machine does not support NVIDIA container toolkit because your machine doesn't have a compatible GPU. In this case, edit the `devcontainer.json` file to remove the `"runArgs": ["--runtime=nvidia", "--gpus=all"],` line and run the "Reopen Dev Container" procedure again.
 
-### Install python dependencies
-```bash
-pip-compile requirements.in
-pip install -r requirements.txt
 
-```
+### Install python dependencies
+You don't have to install any python dependencies, as they are already installed in the Docker container. Please note the 
+dependencies are listed in the `requirements.in` file which is used to generate the `requirements.txt` file with better version control.
+
 
 ## Usage
 
@@ -54,8 +77,11 @@ Guidelines on how to use the project.
 
 ## Contributing
 
-[Bin.Li](mailto:ornot2008@yahoo.com) is the sole contributor to this project. However, if you would like to contribute.
+[Bin.Li](mailto:ornot2008@yahoo.com) is the sole contributor to this project. However, if you would like to contribute,dont hesitate to contact me.
 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. 
+
+
+## Reference

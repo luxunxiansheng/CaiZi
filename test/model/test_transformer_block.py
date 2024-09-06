@@ -4,7 +4,7 @@ import torch
 
 from model.transformer_block import TransformerBlock
 
-from config import gpt2_cfg
+
 class TestTransformerBlock(unittest.TestCase):
     def test_forward(self):
         torch.manual_seed(123)

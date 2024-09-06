@@ -8,7 +8,7 @@ import torch
 import ray
 
 from config import gpt2_cfg as cfg
-from token_processor import TikTokenizer
+from preprocessor.token_processor import TikTokenizer
 from text_generator import TextGenerator
 from utility import (
     load_hf_weights_into_gpt,

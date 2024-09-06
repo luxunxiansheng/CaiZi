@@ -30,7 +30,7 @@ def save_checkpoint(
     model: Module,
     optimizer: Optimizer,
     scaler: GradScaler,
-    epoch: int,
+    step: int,
     perplexity: float,
     best_checkpoint_dir: str,
 ):
@@ -38,7 +38,7 @@ def save_checkpoint(
         "model": model.state_dict(),
         "optimizer": optimizer.state_dict(),
         "scaler": scaler.state_dict(),
-        "epoch": epoch,
+        "step": step,
         "perplexity": perplexity,
     }
 
@@ -56,7 +56,7 @@ def load_checkpoint(
     device: str,
 ) -> tuple[int, float]:
     
-    epoch = 0
+    step = 0
     perplexity = float("inf")
  
     if os.path.exists(checkpoint_dir):
@@ -73,14 +73,14 @@ def load_checkpoint(
             model.load_state_dict(checkpoint_dict["model"])
             optimizer.load_state_dict(checkpoint_dict["optimizer"])
             scaler.load_state_dict(checkpoint_dict["scaler"])
-            epoch = checkpoint_dict["epoch"] if "epoch" in checkpoint_dict else 0
+            step = checkpoint_dict["step"] if "step" in checkpoint_dict else 0
             perplexity = (
                 checkpoint_dict["perplexity"]
                 if "perplexity" in checkpoint_dict
                 else float("inf")
             )
 
-    return (epoch,perplexity)
+    return (step,perplexity)
 
 
 

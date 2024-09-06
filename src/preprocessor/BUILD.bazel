@@ -1,0 +1,22 @@
+
+py_library(
+    name = "datasource_processor",
+    srcs = ["datasource_processor.py"],
+    visibility = ["//visibility:public"],
+)
+
+py_library(
+    name = "token_processor",
+    srcs = ["token_processor.py"],
+    visibility = ["//visibility:public"],
+)
+
+py_library(
+    name = "chunk_processor",
+    srcs = ["chunk_processor.py"],
+    visibility = ["//visibility:public"],
+)
+
+
+
+

@@ -6,24 +6,6 @@ py_library(
 )
 
 py_library(
-    name = "document_processor",
-    srcs = ["document_processor.py"],
-    visibility = ["//visibility:public"],
-)
-
-py_library(
-    name = "token_processor",
-    srcs = ["token_processor.py"],
-    visibility = ["//visibility:public"],
-)
-
-py_library(
-    name = "chunk_processor",
-    srcs = ["chunk_processor.py"],
-    visibility = ["//visibility:public"],
-)
-
-py_library(
     name = "text_generator",
     srcs = ["text_generator.py"],
     visibility = ["//visibility:public"],

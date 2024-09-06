@@ -4,7 +4,9 @@
     "context": "..",
     "dockerfile": "Dockerfile",
     "args": {
-
+      //"http_proxy": "${localEnv:http_proxy}",
+      //"https_proxy": "${localEnv:https_proxy}",
+      //"no_proxy": "${localEnv:no_proxy}"
     }
   },
   "containerEnv": {
@@ -20,7 +22,6 @@
     "vscode": {
       "extensions": [
         "ms-python.python",
-        "ms-azuretools.vscode-docker",
         "ms-toolsai.jupyter",
         "esbenp.prettier-vscode",
         "BazelBuild.vscode-bazel",
@@ -53,8 +54,5 @@
       ]
     }
   },
-  "features": {
-    "ghcr.io/balazs23/devcontainers-features/bazel:1": {},
-   
-  }
+
 }
