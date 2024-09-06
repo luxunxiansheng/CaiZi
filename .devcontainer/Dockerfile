@@ -52,7 +52,7 @@ RUN wget https://github.com/prometheus/prometheus/releases/download/v${PROMETHEU
 
 
 # Install pip-tools
-RUN pip install  pip-tools    
+RUN pip install --index-url https://pypi.tuna.tsinghua.edu.cn/simple  pip-tools    
 
 
 # Install dependencies if requirements.in has changed
@@ -68,7 +68,7 @@ RUN set -e; \
         sha256sum requirements.in > requirements.in.sha256; \
     fi
 
-RUN pip install   -r requirements.txt
+RUN pip install  --index-url https://pypi.tuna.tsinghua.edu.cn/simple   -r requirements.txt
 
 
     
