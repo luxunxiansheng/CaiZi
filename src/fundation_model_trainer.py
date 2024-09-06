@@ -269,9 +269,6 @@ class RayGPT2FundationModelTrainer():
         # Training loop
         stop_training = False
         while True:
-            
-            print(f"global_logical_step: {global_logical_step}")
-
             iterator = iter(train_data_shard.iter_torch_batches(prefetch_batches= physical_training_batch_size_per_worker*2,
                                                                 batch_size=physical_training_batch_size_per_worker,
                                                                 drop_last=True,
@@ -279,8 +276,7 @@ class RayGPT2FundationModelTrainer():
             
             # Single epoch loop
             exhausted = False
-            while True:
-                print(f"global_logical_step: {global_logical_step}")
+            while True:              
                 if global_logical_step > max_steps:
                     stop_training = True
                     break
@@ -292,8 +288,9 @@ class RayGPT2FundationModelTrainer():
                 train_loss = 0
                 
                 for step_index in range(gradient_accumulation_steps):                    
-                    try:
-                        physical_batch = next(iterator)
+                    try:    
+                        physical_batch = next(iterator)                        
+
                     # if the iterator is exhausted, break the loop and abandon the current logic step
                     except StopIteration:  
                         exhausted = True
@@ -319,7 +316,6 @@ class RayGPT2FundationModelTrainer():
 
                     # for reporting
                     train_loss += physical_loss.item()
-                    
                     
                     token_processed += (physical_training_batch_size_per_worker * block_size)
 
@@ -358,58 +354,60 @@ class RayGPT2FundationModelTrainer():
                 report_metrics["norm"] = norm.item()
                 report_metrics["learning_rate"] = optimizer.param_groups[0]["lr"]
 
+                if global_logical_step % check_frequency == 0:
+                    model.eval()
+                    with torch.no_grad():
+                        for batch in validate_data_shard.iter_torch_batches(prefetch_batches= physical_validate_batch_size_per_worker*2,
+                                                                            batch_size=physical_validate_batch_size_per_worker,
+                                                                            drop_last=False,):
+                            input_ids = batch["input_ids"]
+                            target_ids = batch["target_ids"]
 
-                model.eval()
-                with torch.no_grad():
-                    for batch in validate_data_shard.iter_torch_batches(prefetch_batches= physical_validate_batch_size_per_worker*2,
-                                                                        batch_size=physical_validate_batch_size_per_worker,
-                                                                        drop_last=False,):
-                        input_ids = batch["input_ids"]
-                        target_ids = batch["target_ids"]
+                            with torch.autocast(device_type=device.type,dtype=floating_point_precision,enabled=use_amp,):
+                                logits = model(input_ids)
+                                loss = loss_function(logits.flatten(0, 1), target_ids.flatten())
 
-                        with torch.autocast(device_type=device.type,dtype=floating_point_precision,enabled=use_amp,):
-                            logits = model(input_ids)
-                            loss = loss_function(logits.flatten(0, 1), target_ids.flatten())
-
-                        perplexity_metric.update(logits, target_ids)
-                        mean_validate_loss_metric.update(loss)
-
-                perplexity = perplexity_metric.compute().item()
-                perplexity_metric.reset()
-                report_metrics["perplexity"] = perplexity
-
-                validate_loss= mean_validate_loss_metric.compute().item()
-                mean_validate_loss_metric.reset()
-                report_metrics["validate_loss"] = validate_loss
-
-                if perplexity < best_perplexity:
-                    best_perplexity = perplexity
-                    best_global_logical_step = global_logical_step
-
-                    report_metrics["best_global_logical_step"] = best_global_logical_step
-                    report_metrics["best_perplexity"] = best_perplexity
-                    report_metrics["validate_loss_at_best_perplexity"] = validate_loss
+                            perplexity_metric.update(logits, target_ids)
+                            mean_validate_loss_metric.update(loss)
 
                     
-                    # In standard DDP training, where the model is the same across all ranks,
-                    # so only the global rank 0 worker needs to save and report the checkpoint
-                    if  ray.train.get_context().get_world_rank() == 0:
+                    
+                    perplexity = perplexity_metric.compute().item()
+                    perplexity_metric.reset()
+                    report_metrics["perplexity"] = perplexity
 
-                        # create the best_checkpoint_dir if it does not exist
-                        if not os.path.exists(best_checkpoint_dir):
-                            os.makedirs(best_checkpoint_dir)
+                    validate_loss= mean_validate_loss_metric.compute().item()
+                    mean_validate_loss_metric.reset()
+                    report_metrics["validate_loss"] = validate_loss
 
-                        utility.save_checkpoint(
-                            model,
-                            optimizer,
-                            scaler,
-                            best_global_logical_step,
-                            best_perplexity,
-                            best_checkpoint_dir,
-                        )
+                    if perplexity < best_perplexity:
+                        best_perplexity = perplexity
+                        best_global_logical_step = global_logical_step
 
-                # save the latest checkpoint periodically
-                if global_logical_step % check_frequency == 0:
+                        report_metrics["best_global_logical_step"] = best_global_logical_step
+                        report_metrics["best_perplexity"] = best_perplexity
+                        report_metrics["validate_loss_at_best_perplexity"] = validate_loss
+
+                        
+                        # In standard DDP training, where the model is the same across all ranks,
+                        # so only the global rank 0 worker needs to save and report the checkpoint
+                        if  ray.train.get_context().get_world_rank() == 0:
+
+                            # create the best_checkpoint_dir if it does not exist
+                            if not os.path.exists(best_checkpoint_dir):
+                                os.makedirs(best_checkpoint_dir)
+
+                            utility.save_checkpoint(
+                                model,
+                                optimizer,
+                                scaler,
+                                best_global_logical_step,
+                                best_perplexity,
+                                best_checkpoint_dir,
+                            )
+
+                    # save the latest checkpoint periodically
+                   
                     if ray.train.get_context().get_world_rank() == 0:   
                         if not os.path.exists(latest_checkpoint_dir):
                             os.makedirs(latest_checkpoint_dir)
@@ -422,10 +420,8 @@ class RayGPT2FundationModelTrainer():
                             perplexity,
                             latest_checkpoint_dir,
                         )
-                
+                    
                 global_logical_step += 1
-
-                print(f"validate_loss: {validate_loss}, perplexity: {perplexity}, best_perplexity: {best_perplexity}")
 
                 ray.train.report(metrics=report_metrics)
 

@@ -22,7 +22,7 @@ model:
 
 
 ray_data:
-  train_ratio: 0.9
+  train_ratio: 0.995
   # Tokenizer
   tokenizer_class:
     name: TikTokenizer
@@ -32,20 +32,21 @@ ray_data:
 
 ray_train:
   read_train_data:
-     override_num_blocks: 10
-     num_cpus : 8
+     override_num_blocks: 
+     num_cpus : 
   
   read_validate_data:
-     override_num_blocks: 10
-     num_cpus : 8
+     override_num_blocks: 
+     num_cpus : 
 
   num_workers:  1
   use_gpu: True
   num_gpus_per_worker: 1
   num_cpus_per_worker: 1
 
+  max_steps: 6e5
   resume_training: False
-  check_frequency: 10
+  check_frequency: 1000
 
  # In GPT3, its logical batch size is 0.5M (in tokens). According to the 
  # block size of 1024, the logical batch size is about 512. If we take the 
@@ -53,7 +54,7 @@ ray_train:
  # The formula is: 
  # Gradient Accumulation Steps = Logical Batch Size /Physical Batch Size
  # where the Logical Batch Size = 0.5M / block_size
-  gradient_accumulation_steps: 1
+  gradient_accumulation_steps: 64
   physical_training_batch_size_per_worker: 12
   physical_validate_batch_size_per_worker: 4
 
@@ -70,7 +71,7 @@ ray_train:
   weight_decay: 0.1
 
   warmup_steps: 700
-  max_steps: 6e5
+ 
   max_lr: 6e-4
   min_lr: 6e-5
   beta1: 0.9
