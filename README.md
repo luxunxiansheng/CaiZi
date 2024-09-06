@@ -6,10 +6,6 @@
 ## Description
 This project aims to create a digital talent (才子) who can write novels, paint, and compose music. Under the hood, the lastest AI  will be used, such as GPT-like  family, diffusion models  and other generative technologies. To a large sense, the project is of educational purpose, to learn the latest AI technologies and to have fun.
 
-For now, as the first step, the project will focus on the text generation part.  
-
-There have been lots of GPT-2 implementations on web, but in this project, the focus is on the educational aspect, to learn the model from scratch, to understand the model, to implement the model, to train the model, to fine-tune the model, to evaluate the model, to deploy the model, and to use the model.
-
 The project also pays attention to the following aspects:
 
 1. Software engineering best practices:
@@ -22,6 +18,10 @@ The project also pays attention to the following aspects:
   - Easy to scale up and down
   - Easy to develop and deploy 
    
+
+----------------------------------------------
+For now, as the first step, the project will focus on the text generation part.  
+There have been lots of GPT-2 implementations on web, but in this project, the focus is on the educational aspect, to learn the model from scratch, to understand the model, to implement the model, to train the model, to fine-tune the model, to evaluate the model, to deploy the model, and to use the model.
 
 
 ## Table of Contents
