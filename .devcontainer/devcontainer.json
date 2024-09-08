@@ -3,20 +3,16 @@
   "build": {
     "context": "..",
     "dockerfile": "Dockerfile",
-    "args": {
-      //"http_proxy": "${localEnv:http_proxy}",
-      //"https_proxy": "${localEnv:https_proxy}",
-      //"no_proxy": "${localEnv:no_proxy}"
-    }
   },
   "containerEnv": {
-
+    "http_proxy": "${localEnv:http_proxy}",
+    "https_proxy": "${localEnv:https_proxy}",
+    "no_proxy": "${localEnv:no_proxy}"
   },
-
-  "runArgs": [				
-		"--shm-size=8.30gb",
-		"--cap-add=SYS_PTRACE",
-
+  "runArgs": [
+    "--shm-size=8.30gb",
+    "--cap-add=SYS_PTRACE",
+    "--network", "host"
   ],
   "customizations": {
     "vscode": {
@@ -54,5 +50,4 @@
       ]
     }
   },
-
 }

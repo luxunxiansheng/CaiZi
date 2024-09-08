@@ -254,8 +254,8 @@ class RayGPT2FundationModelTrainer():
             "token_per_second": 0.0,    # speed 
             "muf": 0.0,
         
-            "train_loss": 0.0,
-            "validate_loss": 0.0,
+            "train_loss": 100.0,
+            "validate_loss": 100.0,
             "perplexity": perplexity,
         
             "norm": 0.0,
@@ -263,7 +263,7 @@ class RayGPT2FundationModelTrainer():
             
             "best_global_logical_step": best_global_logical_step,
             "best_perplexity": best_perplexity,
-            "validate_loss_at_best_perplexity": 0.0,
+            "validate_loss_at_best_perplexity": 100.0,
         }
 
         # Training loop

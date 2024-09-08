@@ -1,10 +1,5 @@
 FROM pytorch/pytorch:2.4.0-cuda12.1-cudnn9-runtime
-
-ARG http_proxy
-ARG https_proxy                                                  
-                                                  
-
-
+                                         
 RUN sed -i 's|http://archive.ubuntu.com/ubuntu/|https://mirrors.tuna.tsinghua.edu.cn/ubuntu/|g' /etc/apt/sources.list && \
     apt-get update && \
     apt-get install -y sudo && \
@@ -21,27 +16,21 @@ RUN sed -i 's|http://archive.ubuntu.com/ubuntu/|https://mirrors.tuna.tsinghua.ed
 
 
 #  Install Bazelisk
-RUN wget https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-amd64 \
+RUN wget -c --tries=10 https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-amd64 \
     -O /usr/local/bin/bazelisk && \
     chmod +x /usr/local/bin/bazelisk
 RUN ln -s /usr/local/bin/bazelisk /usr/local/bin/bazel
 
 
-# Install Buildifier
-ENV BUILDIFIER_VERSION=7.3.1
-RUN wget -O /usr/local/bin/buildifier https://github.com/bazelbuild/buildtools/releases/download/v${BUILDIFIER_VERSION}/buildifier-linux-amd64 \
-    && chmod +x /usr/local/bin/buildifier
-
-
 # install grafana
-RUN wget https://dl.grafana.com/enterprise/release/grafana-enterprise_11.1.3_amd64.deb &&\
+RUN wget -c --tries=10   https://dl.grafana.com/enterprise/release/grafana-enterprise_11.1.3_amd64.deb &&\
     dpkg -i grafana-enterprise_11.1.3_amd64.deb &&\
     rm grafana-enterprise_11.1.3_amd64.deb
 
 # Install Prometheus
 ENV PROMETHEUS_VERSION=2.54.0
 RUN mkdir -p /etc/prometheus /var/lib/prometheus
-RUN wget https://github.com/prometheus/prometheus/releases/download/v${PROMETHEUS_VERSION}/prometheus-${PROMETHEUS_VERSION}.linux-amd64.tar.gz \
+RUN wget -c --tries=10   https://github.com/prometheus/prometheus/releases/download/v${PROMETHEUS_VERSION}/prometheus-${PROMETHEUS_VERSION}.linux-amd64.tar.gz \
     && tar -xvzf prometheus-${PROMETHEUS_VERSION}.linux-amd64.tar.gz \
     && mv prometheus-${PROMETHEUS_VERSION}.linux-amd64/prometheus /usr/local/bin/ \
     && mv prometheus-${PROMETHEUS_VERSION}.linux-amd64/promtool /usr/local/bin/ \
