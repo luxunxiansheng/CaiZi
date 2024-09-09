@@ -10,6 +10,8 @@
     "no_proxy": "${localEnv:no_proxy}"
   },
   "runArgs": [
+    "--runtime=nvidia",
+    "--gpus=all",
     "--shm-size=8.30gb",
     "--cap-add=SYS_PTRACE",
     "--network", "host"
@@ -50,4 +52,6 @@
       ]
     }
   },
+
+  "postStartCommand": "ray start --head && .devcontainer/start_prometheus.sh && .devcontainer/start_grafana.sh"
 }

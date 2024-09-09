@@ -45,7 +45,7 @@ ray_train:
   num_cpus_per_worker: 1
 
   max_steps: 6e5
-  resume_training: False
+  resume_training: True
   check_frequency: 1000
 
  # In GPT3, its logical batch size is 0.5M (in tokens). According to the 
