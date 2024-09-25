@@ -4,7 +4,7 @@
 
 
 ## Description
-This project aims to create a digital talent (才子) who can write novels, paint, and compose music. Under the hood, the lastest AI  will be used, such as GPT-like  family, diffusion models  and other generative technologies. To a large sense, the project is of educational purpose, to learn the latest AI technologies and to have fun.
+This project aims to create a digital talent (才子) who can write novels, paint, compose music and even play chess. Under the hood, the lastest AI  will be used, such as GPT-like  family, diffusion models,multimodel LLM  and other generative technologies. To a large sense, the project is of educational purpose, to learn the latest AI technologies and to have fun.
 
 The project also pays attention to the following aspects:
 
@@ -69,7 +69,7 @@ dependencies are listed in the `requirements.in` file which is used to generate 
 
 ## Usage
 
-Guidelines on how to use the project.
+
 
 
 ## Tools
